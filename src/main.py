@@ -36,6 +36,7 @@ SCADA_alarm2 = None
 current = None
 
 log_status = False
+current_screen = 0
 
 spi = spidev.SpiDev()
 spi.open(0, 0)  
@@ -207,9 +208,74 @@ def log_data():
 
 def clear_app():
     print("Clearing window...")
-    #app.destroy()
+    for i in app.winfo_children():
+        i.destroy()
+
+
+def log_tab():
+    global current_screen
+    clear_app()
+    current_screen = 1
+    customtkinter.CTkButton(app, width=150, height=50, text="Back to home", command=main_screen_startup).grid(row=0, column=0, padx=20, pady=0)
+    customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=open_report).grid(row=0, column=1, padx=20, pady=0)
+
+def open_report():
+    print("searching for log data....")
+    file_path = tkinter.filedialog.askopenfilename(
+        filetypes=[("CSV Files", "*.csv")],
+        initialdir="/home/ret/Desktop/App/Log",
+        title="Select a CSV File"
+    )
+    if file_path:
+        print("Plotting data...")
+        plot_log_report(file_path)
+
+
+def plot_log_report(file):
+    print("Plotting data...")
+    try:
+        # Read CSV file, explicitly handle delimiters and column names
+        data = pd.read_csv(file, sep=",", header=None, names=["DateTime", "Value"])
+        
+        # Split the DateTime column into Date and Time if necessary
+        data["DateTime"] = data["DateTime"].astype(str).str.strip()  # Ensure no extra spaces
+        data["Datetime"] = pd.to_datetime(data["DateTime"], format="%Y-%m-%d %H:%M:%S", errors='coerce')
+        
+        # Check for invalid datetime values
+        if data["Datetime"].isnull().any():
+            print("Error: Invalid datetime format in CSV. Please check for inconsistencies.")
+            print(data.loc[data["Datetime"].isnull()])  # Print problematic rows for debugging
+            return
+        
+        # Create the plot
+        fig, ax = plt.subplots(figsize=(8, 3.5))
+        ax.plot(data["Datetime"], data["Value"], label="Log Data", color="blue", linewidth=2)
+        
+        # Customize the plot
+        ax.set_xlabel("Datetime", fontsize=10)
+        ax.set_ylabel("Value (Amps)", fontsize=12)
+        ax.set_title("Log Data Visualization", fontsize=16)
+        ax.tick_params(axis='x', labelrotation=45)
+        ax.legend(fontsize=10)
+        plt.tight_layout()
+
+        # Embed the plot in the Tkinter app
+        canvas = FigureCanvasTkAgg(fig, master=app)
+        canvas.draw()
+        canvas.get_tk_widget().grid(row=1, column=0, columnspan=6, pady=20)
+
+    except Exception as e:
+        print(f"Error reading or plotting CSV file: {e}")
+
+
+
+
 
 def main_screen_startup():
+    global current_screen
+    if (current_screen == 1):
+        clear_app()
+        
     input1 = customtkinter.CTkEntry(app, width=100, height=30, textvariable=BMS_first_input)
     input1.grid(row=1, column=3, padx=20, pady=0)
     input1.bind("<FocusIn>", lambda e: on_focus(input1))
@@ -259,8 +325,8 @@ def main_screen_startup():
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=BMS_set2).grid(row=3, column=5, padx=20, pady=0)
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=SCADA_set1).grid(row=1, column=2, padx=20, pady=0)
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=SCADA_set2).grid(row=3, column=2, padx=20, pady=0)
-    customtkinter.CTkButton(app, width=150, height=30, text="Full system test", command=functional_test).grid(row=1, column=0, padx=20, pady=10)
-    customtkinter.CTkButton(app, width=150, height=30, text="Log reports", command=clear_app).grid(row=2, column=0, padx=20, pady=10)
+    customtkinter.CTkButton(app, width=150, height=50, text="Full system test", command=functional_test).grid(row=1, column=0, padx=20, pady=10)
+    customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=log_tab).grid(row=2, column=0, padx=20, pady=10)
 
     current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))# sensor data
     current_label.grid(row=5, column=3, columnspan=3, pady=20)
