@@ -145,7 +145,16 @@ def alarm_check4():
             GPIO.output(Relay4, GPIO.LOW)
     app.after(300, alarm_check4)
 
-def functional_test():
+def functional_tests():
+    global current_screen
+    current_screen = 1
+    clear_app()
+
+    customtkinter.CTkButton(app, width=150, height=50, text="Test BMS & SCADA relays", command=relay_test).grid(row=1, column=0, padx=20, pady=10)
+    customtkinter.CTkButton(app, width=150, height=50, text="Test 4-20mA output", command=analog_test).grid(row=2, column=0, padx=20, pady=10)
+    customtkinter.CTkButton(app, width=150, height=50, text="Back to Home", command=main_screen_startup).grid(row=3, column=0, padx=20, pady=10)
+
+def relay_test():
     print("Performing system functionality test....")
     GPIO.output(Relay1, GPIO.HIGH)
     time.sleep(1)
@@ -159,6 +168,9 @@ def functional_test():
     GPIO.output(Relay4, GPIO.HIGH)
     time.sleep(1)
     GPIO.output(Relay4, GPIO.LOW)
+
+def analog_test():
+    print("Creating a 1Hz sinus from 4-")
 
 def read_channel():
     global current
@@ -268,9 +280,6 @@ def plot_log_report(file):
         print(f"Error reading or plotting CSV file: {e}")
 
 
-
-
-
 def main_screen_startup():
     global current_screen
     if (current_screen == 1):
@@ -325,7 +334,7 @@ def main_screen_startup():
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=BMS_set2).grid(row=3, column=5, padx=20, pady=0)
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=SCADA_set1).grid(row=1, column=2, padx=20, pady=0)
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=SCADA_set2).grid(row=3, column=2, padx=20, pady=0)
-    customtkinter.CTkButton(app, width=150, height=50, text="Full system test", command=functional_test).grid(row=1, column=0, padx=20, pady=10)
+    customtkinter.CTkButton(app, width=150, height=50, text="Full system test", command=functional_tests).grid(row=1, column=0, padx=20, pady=10)
     customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=log_tab).grid(row=2, column=0, padx=20, pady=10)
 
     current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))# sensor data
