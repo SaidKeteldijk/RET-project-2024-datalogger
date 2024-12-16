@@ -1,3 +1,6 @@
+## Designed by RET EV sept 2024 - jan 2025 
+## Retour stroom module App.py
+
 import tkinter
 import customtkinter
 import RPi.GPIO as GPIO
@@ -170,7 +173,7 @@ def relay_test():
     GPIO.output(Relay4, GPIO.LOW)
 
 def analog_test():
-    print("Creating a 1Hz sinus from 4-")
+    print("Creating a 1Hz sinus from 4-20mA")
 
 def read_channel():
     global current
