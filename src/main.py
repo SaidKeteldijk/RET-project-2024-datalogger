@@ -1,6 +1,3 @@
-## Designed by RET EV sept 2024 - jan 2025 
-## Retour stroom module App.py
-
 import tkinter
 import customtkinter
 import RPi.GPIO as GPIO
@@ -173,7 +170,7 @@ def relay_test():
     GPIO.output(Relay4, GPIO.LOW)
 
 def analog_test():
-    print("Creating a 1Hz sinus from 4-20mA")
+    print("Creating a 1Hz sinus from 4-")
 
 def read_channel():
     global current
@@ -186,20 +183,18 @@ def read_channel():
     if raw_value >= min_adc:
         normalized_value = (raw_value - min_adc) / (max_adc - min_adc)  
         current = normalized_value * max_current  
-        #print("The current value: ", current)
-        #print("ADC value:", raw_value)
+        print("The current value: ", current)
+        print("ADC value:", raw_value)
     else:
         current = 0
     
     return current
 
 def update_current_display():
-    # current_value = read_channel()
-    # current_label.configure(text=f"Current: {current_value:.2f} A")
-    # app.after(200, update_current_display)  
-    global current
-    current_label.configure(text=f"Current: {current:.2f} A")
-    app.after(200, update_current_display) 
+    current_value = read_channel()
+    current_label.configure(text=f"Current: {current_value:.2f} A")
+    app.after(200, update_current_display)  
+
 
 def append_to_input(value):
     if focused_entry:
@@ -217,7 +212,7 @@ def backspace_input():
 def log_data():
     global current
     print("Starting data logging...")
-    with open("/home/ret/Desktop/App/log_report.csv", "a") as log:
+    with open("/home/ret/Desktop/App/Log/log_report.csv", "a") as log:
         while log_status:
             log.write("{0},{1}\n".format(strftime("%Y-%m-%d %H:%M:%S"), float(current)))
             sleep(0.3)
@@ -251,24 +246,24 @@ def open_report():
 def plot_log_report(file):
     print("Plotting data...")
     try:
-        # Read CSV file, explicitly handle delimiters and column names
+        
         data = pd.read_csv(file, sep=",", header=None, names=["DateTime", "Value"])
         
-        # Split the DateTime column into Date and Time if necessary
-        data["DateTime"] = data["DateTime"].astype(str).str.strip()  # Ensure no extra spaces
+        
+        data["DateTime"] = data["DateTime"].astype(str).str.strip()  
         data["Datetime"] = pd.to_datetime(data["DateTime"], format="%Y-%m-%d %H:%M:%S", errors='coerce')
         
-        # Check for invalid datetime values
+        
         if data["Datetime"].isnull().any():
             print("Error: Invalid datetime format in CSV. Please check for inconsistencies.")
-            print(data.loc[data["Datetime"].isnull()])  # Print problematic rows for debugging
+            print(data.loc[data["Datetime"].isnull()])  
             return
         
-        # Create the plot
+        
         fig, ax = plt.subplots(figsize=(8, 3.5))
         ax.plot(data["Datetime"], data["Value"], label="Log Data", color="blue", linewidth=2)
         
-        # Customize the plot
+        
         ax.set_xlabel("Datetime", fontsize=10)
         ax.set_ylabel("Value (Amps)", fontsize=12)
         ax.set_title("Log Data Visualization", fontsize=16)
@@ -276,7 +271,7 @@ def plot_log_report(file):
         ax.legend(fontsize=10)
         plt.tight_layout()
 
-        # Embed the plot in the Tkinter app
+       
         canvas = FigureCanvasTkAgg(fig, master=app)
         canvas.draw()
         canvas.get_tk_widget().grid(row=1, column=0, columnspan=6, pady=20)
@@ -287,7 +282,7 @@ def plot_log_report(file):
 
 def main_screen_startup():
     global current_screen
-    if (current_screen == 1):
+    if current_screen == 1:
         clear_app()
         
     input1 = customtkinter.CTkEntry(app, width=100, height=30, textvariable=BMS_first_input)
@@ -305,9 +300,6 @@ def main_screen_startup():
     input4 = customtkinter.CTkEntry(app, width=100, height=30, textvariable=SCADA_second_input)
     input4.grid(row=3, column=1, padx=20, pady=0)
     input4.bind("<FocusIn>", lambda e: on_focus(input4))
-
-    current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))
-    current_label.grid(row=5, column=3, columnspan=3, pady=20)
 
     numpad_frame = customtkinter.CTkFrame(app, width=200, height=200)
     numpad_frame.place(relx=1.0, rely=1.0, anchor="se")
@@ -329,7 +321,6 @@ def main_screen_startup():
     numpad_frame.grid_rowconfigure((0, 1, 2, 3), weight=1)
     numpad_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-
     customtkinter.CTkLabel(app, text="Set First BMS alarm").grid(row=0, column=3, padx=30, pady=0)
     customtkinter.CTkLabel(app, text="Set second BMS alarm").grid(row=2, column=3, padx=30, pady=0)
     customtkinter.CTkLabel(app, text="Set First SCADA alarm").grid(row=0, column=1, padx=30, pady=0)
@@ -342,17 +333,15 @@ def main_screen_startup():
     customtkinter.CTkButton(app, width=150, height=50, text="Full system test", command=functional_tests).grid(row=1, column=0, padx=20, pady=10)
     customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=log_tab).grid(row=2, column=0, padx=20, pady=10)
 
-    current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))# sensor data
-    current_label.grid(row=5, column=3, columnspan=3, pady=20)
 
 
 main_screen_startup()
-update_current_display()
+
 alarm_check1()
 alarm_check2()
 alarm_check3()
 alarm_check4()
-
+update_current_display()
 
 
 app.mainloop()
