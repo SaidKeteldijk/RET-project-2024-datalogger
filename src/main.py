@@ -194,10 +194,12 @@ def read_channel():
     return current
 
 def update_current_display():
-    current_value = read_channel()
-    current_label.configure(text=f"Current: {current_value:.2f} A")
-    app.after(200, update_current_display)  
-
+    # current_value = read_channel()
+    # current_label.configure(text=f"Current: {current_value:.2f} A")
+    # app.after(200, update_current_display)  
+    global current
+    current_label.configure(text=f"Current: {current:.2f} A")
+    app.after(200, update_current_display) 
 
 def append_to_input(value):
     if focused_entry:
