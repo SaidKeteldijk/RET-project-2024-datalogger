@@ -18,10 +18,16 @@ customtkinter.set_default_color_theme("dark-blue")
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 
-Relay1 = 11
-Relay2 = 15
-Relay3 = 13
-Relay4 = 22
+# Relay1 = 22 # SCADA 1 //13  BMS 1
+# Relay2 = 13 # BMS 1   // 11 BM 2
+# Relay3 = 15 # SCADA 2 // 22 SCADA 1
+# Relay4 = 11 # BMS 2   // 15 SCADA 2
+
+# pinout for version 1.0.3
+Relay1 = 11 # SCADA 1 // 13  BMS 1
+Relay2 = 15 # BMS 1   // 11 BM 2
+Relay3 = 13 # SCADA 2 // 22 SCADA 1
+Relay4 = 22 # BMS 2   // 15 SCADA 2
 
 GPIO.setup(Relay1, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
@@ -89,7 +95,7 @@ def SCADA_set1():
 
     elif SCADA_first_input.get() >= 0:
         SCADA_alarm1 = SCADA_first_input.get()
-        print("BMS Alarm 1 set to:", SCADA_alarm1)
+        print("SCADA Alarm 1 set to:", SCADA_alarm1)
 
 def SCADA_set2():
     global SCADA_alarm2
@@ -98,7 +104,7 @@ def SCADA_set2():
 
     elif SCADA_second_input.get() >= 0:
         SCADA_alarm2 = SCADA_second_input.get()
-        print("BMS Alarm 1 set to:", SCADA_alarm2)
+        print("SCADA Alarm 2 set to:", SCADA_alarm2)
 
 def alarm_check1():
     global BMS_alarm1, log_status
@@ -156,39 +162,43 @@ def functional_tests():
 
 def relay_test():
     print("Performing system functionality test....")
-    GPIO.output(Relay1, GPIO.HIGH)
-    time.sleep(1)
+    GPIO.output(Relay3, GPIO.HIGH) # SCADA 1
+    time.sleep(3)
+    GPIO.output(Relay3, GPIO.LOW) 
+    GPIO.output(Relay1, GPIO.HIGH) # BMS 1 
+    time.sleep(3)
     GPIO.output(Relay1, GPIO.LOW)
-    GPIO.output(Relay2, GPIO.HIGH)
-    time.sleep(1)
-    GPIO.output(Relay2, GPIO.LOW)
-    GPIO.output(Relay3, GPIO.HIGH)
-    time.sleep(1)
-    GPIO.output(Relay3, GPIO.LOW)
-    GPIO.output(Relay4, GPIO.HIGH)
-    time.sleep(1)
+    GPIO.output(Relay4, GPIO.HIGH)# SCADA 2
+    time.sleep(3)
     GPIO.output(Relay4, GPIO.LOW)
+    GPIO.output(Relay2, GPIO.HIGH) # BMS 2
+    time.sleep(3)
+    GPIO.output(Relay2, GPIO.LOW)
 
 def analog_test():
-    print("Creating a 1Hz sinus from 4-")
+    print("Creating a 1Hz sinus from 4-") # not posible because 4-20mA unit generater is defect
 
-def read_channel():
+def read_channel(): ##10% afwijking
     global current
     adc = spi.xfer2([1, (8 + 0) << 4, 0])
     raw_value = ((adc[1] & 3) << 8) + adc[2]
-    
-    min_adc = 311  # berekening aanpassen
+    #print("the bit value is:", raw_value)
+    min_adc = 307 # berekening aanpassen
     max_adc = 1023  
-    max_current = 100
+    max_current = 66 # 66 ampere is the technical max # last value 100
     if raw_value >= min_adc:
-        normalized_value = (raw_value - min_adc) / (max_adc - min_adc)  
+        normalized_value = (raw_value - min_adc) / (max_adc - min_adc) 
+        #print("factor is:", normalized_value) 
         current = normalized_value * max_current  
-        print("The current value: ", current)
-        print("ADC value:", raw_value)
+        #print("The current value: ", current)
+        #print("ADC value:", raw_value)
+
     else:
         current = 0
     
     return current
+
+
 
 def update_current_display():
     current_value = read_channel()
