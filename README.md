@@ -9,4 +9,10 @@ De retourstroom module is een datalogger die ontwikkeld is om DC en AC stroom te
 De functionaliteiten van de module zijn:
 
 - Het uitlezen van current transducers die een 4-20mA output of 0-10V output geven.
-- Het 
+- Het loggen van de gemeten AC of DC stroom.
+- Het plotten/weergeven van de opgeslagen stroom waarde
+- Het instellen van setpoints voor de alarmen van het Bedrijfsmeldsysteem (BMS) en supervisory control and data acquisition (SCADA) systeem van de RET.
+- Het laten af gaan van een alarm signaal(24V signaal) bij het detecteren van een overschreiding van een van de setpoints.
+- Het door sturen van de gemeten stroom waarde via een 4-20mA signaal.
+
+
