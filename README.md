@@ -16,3 +16,4 @@ De functionaliteiten van de module zijn:
 - Het door sturen van de gemeten stroom waarde via een 4-20mA signaal.
 
 
+![alt text](<Schermafbeelding 2025-01-20 003532.png>)
