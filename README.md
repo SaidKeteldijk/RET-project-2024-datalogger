@@ -67,3 +67,21 @@ Voor het starten van de Python app met VENV (Virtual Environment) zijn de volgen
 
 
 ![alt text](Software-setup.png)
+
+
+# Software buggs 
+
+Er staan nog een aantal bugs(software fouten die niet destructief zijn voor de melding van de gehele module ) in de Python code van de RSM module. 
+
+De bugs zijn:
+
+- De update functie voor weergeven van de actuele stroom in Ampere verdwijnt als er naar een andere pagine wordt genavigeerd. Maar de alarm en log functies blijven wel werken.
+
+- Bij het genereren van log.csv bestanden wordt de actuele datum niet meegegeven het wordt dan log(1).csv.
+
+- Er is nog geen functie om een sensor met een 0-10V uitgang in te lezen.
+
+- De pyplot functie werkt, maar zorgt wel voor een grafiek die soms een vertekend beeld geeft.
+
+- De setpoints(grenswaardes) voor BMS en SCADA blijven niet bewaard als de RSM wordt restart of als de module niet plots geen spanning meer heeft.
+
