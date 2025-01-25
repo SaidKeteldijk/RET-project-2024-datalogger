@@ -33,17 +33,17 @@ The functionalities of the RSM are:
 
 The English translated documentation of this page can be found below the dutch documentation.
 
-![alt text](20250123_140701.jpg)
+![alt text](RSM-module.jpg)
 
 # De elektronica 
 
 De elektronica van de RSM bestaat uit een Raspberry Pi 4B, een door de RET ontwikkelde Raspberry Pi HAT en een Raspberry Pi touch 7 display.
 
-![alt text](20250123_120924.jpg)
+![alt text](Eletronics-assembly.jpg)
 
 De pinout(bekabelingsschema) voor de module is hier onder te vinden. De module is in staat om op een DC spanning van 6V tot 50V te werken en ver bruikt gemiddeld 400mA. 
 
-![alt text](image-2.png)
+![alt text](Pinout.png)
 
 De Raspberry Pi HAT is opgebouwd uit de volgende units:
 - Buckconverter om de ingangsspanning om te zetten naar een voedingsspanning van 5VDC.
@@ -66,4 +66,4 @@ Voor het starten van de Python app met VENV (Virtual Environment) zijn de volgen
 - python3 systemtest.py  << start de App
 
 
-![alt text](image-3.png)
+![alt text](Software-setup.png)
