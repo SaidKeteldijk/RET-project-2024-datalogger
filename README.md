@@ -45,5 +45,19 @@ De pinout(bekabelingsschema) voor de module is hier onder te vinden. De module i
 
 ![alt text](image-2.png)
 
+De Raspberry Pi HAT is opgebouwd uit de volgende units:
+- Buckconverter om de ingangsspanning om te zetten naar een voedingsspanning van 5VDC.
+- Een Boostconverter om de juiste spanning aan te bieden voor de alarmen voor het BMS en SCADA systeem.
+- Een 4 kanaals relais unit om een hoog signaal (24V) of laag signaal(0V) door te geven aan het BMS of SCADA systeem.
+- Een ADC module die een current transducer sensor kan uitlezen die een 4-20mA of 0-10V uitgangssignaal heeft.
+- Een 4-20mA output loop generator
+
 
 # De software
+
+De software die op de Raspberry Pi 4B van de RSM draait is als volgt opgebouwd. Voor het besturingssysteem wordt er een Linux kernel gebruikt (Rasberry OS). 
+Hierin wordt er een virtuele omgeving opgebouwd in python, in deze virtuele omgeving wordt de Python app opgestart die alle elektronica bestuurd en de grafische interface beheert.
+De Python source code is te vinden in RET-project > src > main.py.
+
+
+![alt text](image-3.png)
