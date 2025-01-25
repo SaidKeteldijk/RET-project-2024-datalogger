@@ -77,7 +77,7 @@ De bugs zijn:
 
 | Bug                           | Impact                       | Status        |
 |-------------------------------|------------------------------|---------------|
-| Updatefunctie verdwijnt       | Alleen UI-gerelateerd        | Open          |
+| Updatefunctie (A) verdwijnt       | Alleen UI-gerelateerd        | Open          |
 | Log.csv mist datum            | Minder gebruiksvriendelijk   | Open          |
 | Geen 0-10V sensor support     | Functionaliteit beperkt      | Open          |
 | Pyplot soms vertekend         | Visuele weergave             | Open          |
