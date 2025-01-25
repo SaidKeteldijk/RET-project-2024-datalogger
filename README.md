@@ -16,7 +16,7 @@ De functionaliteiten van de RSM zijn:
 - Het door sturen van de gemeten stroom waarde via een 4-20mA signaal.
 
 
-# Intro English
+# Intro (English)
 
 This GitHub repository serves as a manual and technical documentation for the hardware and software of the return current module. The information provided in this repository is intended for the technical staff of the Rotterdam Electric Tram (RET) company.
 
@@ -56,8 +56,14 @@ De Raspberry Pi HAT is opgebouwd uit de volgende units:
 # De software
 
 De software die op de Raspberry Pi 4B van de RSM draait is als volgt opgebouwd. Voor het besturingssysteem wordt er een Linux kernel gebruikt (Rasberry OS). 
-Hierin wordt er een virtuele omgeving opgebouwd in python, in deze virtuele omgeving wordt de Python app opgestart die alle elektronica bestuurd en de grafische interface beheert.
-De Python source code is te vinden in RET-project > src > main.py.
+Hierin wordt er een virtuele omgeving opgebouwd in python, in deze virtuele omgeving (VM) wordt de Python app opgestart die alle elektronica bestuurd en de grafische interface beheert.
+De Python source code is te vinden in "RET-project-2024-datalogger > src > main.py".
+
+Voor het starten van de Python app met VENV (Virtual Environment) zijn de volgende command's nodig. Deze commando's ingevuld te worden in de terminal van Linux:
+
+- cd Desktop/App
+- source myenv/bin/activate << start de VENV
+- python3 systemtest.py  << start de App
 
 
 ![alt text](image-3.png)
