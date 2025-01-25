@@ -90,6 +90,11 @@ Om de RSM te installeren moeten de volgende stappen worden gevolgd:
 
 1. Monteer Raspberry Pi 4B met de Raspberry Pi 7 inch display met 4 m3x10 schroeven.
 2. Verbind de Raspberry Pi 4B met de Raspberry Pu 7 inch display met de 15cm 22pin ribbon kabel.
-3. Klik de Raspberry pi HAT op de pin headers van de Raspberry Pi 4B, let er hierbij wel op dat de orientatie klop. De witte pijl van de HAT moet richting de achterkant wijzen dan de Raspberry Pi 4B, **NIET NAAR DE USB POORTEN!!**  
+3. Klik de Raspberry pi HAT op de pin headers van de Raspberry Pi 4B, let er hierbij wel op dat de orientatie klop. De witte pijl van de HAT moet richting de achterkant wijzen dan de Raspberry Pi 4B, **NIET NAAR DE USB POORTEN!!**
+
+![alt text](Raspberry_Pi_4_Model_B_.jpg)
+
 4. Plaats de elektronica in de behuizing en verbind de externe kabels volgens het bekabelsing schema, let hierbij op de polariteiten en de spanningen.
 5. 
+
+
