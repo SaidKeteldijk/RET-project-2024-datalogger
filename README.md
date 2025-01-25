@@ -1,12 +1,12 @@
 # RET-project-2024-datalogger
- Python project for a Linux based datalogger
-
+ 
+ # Inleiding
 
 Deze Github repository dient als handleiding en technische documentatie voor de hardware en software van de retourstroom module. De in informatie die in deze repository te vinden is, is bedoelt voor het technische personeel van firma Rotterdam Elektrische Tram(RET).
 
-De retourstroom module is een datalogger die ontwikkeld is om DC en AC stroom te meten in aardingsnetwerken van Spoorbeveiligingsruimtes in Gelijk Richter Stations van de RET. 
+De retourstroom module (RSM) is een datalogger die ontwikkeld is om DC en AC stroom te meten in aardingsnetwerken van Spoorbeveiligingsruimtes in Gelijk Richter Stations van de RET. 
 
-De functionaliteiten van de module zijn:
+De functionaliteiten van de RSM zijn:
 
 - Het uitlezen van current transducers die een 4-20mA output of 0-10V output geven.
 - Het loggen van de gemeten AC of DC stroom.
@@ -16,4 +16,13 @@ De functionaliteiten van de module zijn:
 - Het door sturen van de gemeten stroom waarde via een 4-20mA signaal.
 
 
-![alt text](<Schermafbeelding 2025-01-20 003532.png>)
+![alt text](20250123_140701.jpg)
+
+Intro
+
+
+# De elektronica 
+
+De elektronica van de RSM bestaat uit een Raspberry Pi 4B, een door de RET ontwikkelde Raspberry Pi HAT en een Raspberry Pi touch 7 display.
+
+![alt text](20250123_120924.jpg)
