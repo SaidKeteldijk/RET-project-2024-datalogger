@@ -39,7 +39,7 @@ The English translated documentation of this page can be found below the dutch d
 
 De elektronica van de RSM bestaat uit een Raspberry Pi 4B, een door de RET ontwikkelde Raspberry Pi HAT en een Raspberry Pi touch 7 display.
 
-![alt text](Eletronics-assembly.jpg)
+![alt text](Electronics-assembly.jpg)
 
 De pinout(bekabelingsschema) voor de module is hier onder te vinden. De module is in staat om op een DC spanning van 6V tot 50V te werken en ver bruikt gemiddeld 400mA. 
 
@@ -75,13 +75,12 @@ Er staan nog een aantal bugs(software fouten die niet destructief zijn voor de m
 
 De bugs zijn:
 
-- De update functie voor weergeven van de actuele stroom in Ampere verdwijnt als er naar een andere pagine wordt genavigeerd. Maar de alarm en log functies blijven wel werken.
+| Bug                           | Impact                       | Status        |
+|-------------------------------|------------------------------|---------------|
+| Updatefunctie verdwijnt       | Alleen UI-gerelateerd        | Open          |
+| Log.csv mist datum            | Minder gebruiksvriendelijk   | Open          |
+| Geen 0-10V sensor support     | Functionaliteit beperkt      | Open          |
+| Pyplot soms vertekend         | Visuele weergave             | Open          |
+| Setpoints niet persistent     | Verliest instellingen        | Open          |
 
-- Bij het genereren van log.csv bestanden wordt de actuele datum niet meegegeven het wordt dan log(1).csv.
-
-- Er is nog geen functie om een sensor met een 0-10V uitgang in te lezen.
-
-- De pyplot functie werkt, maar zorgt wel voor een grafiek die soms een vertekend beeld geeft.
-
-- De setpoints(grenswaardes) voor BMS en SCADA blijven niet bewaard als de RSM wordt restart of als de module niet plots geen spanning meer heeft.
 
