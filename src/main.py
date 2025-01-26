@@ -24,10 +24,10 @@ GPIO.setmode(GPIO.BOARD)
 # Relay4 = 11 # BMS 2   // 15 SCADA 2
 
 # pinout for version 1.0.3
-Relay1 = 11 # SCADA 1 // 13  BMS 1
-Relay2 = 15 # BMS 1   // 11 BM 2
-Relay3 = 13 # SCADA 2 // 22 SCADA 1
-Relay4 = 22 # BMS 2   // 15 SCADA 2
+Relay1 = 11 # SCADA 1 
+Relay2 = 15 # BMS 1   
+Relay3 = 13 # SCADA 2 
+Relay4 = 22 # BMS 2   
 
 GPIO.setup(Relay1, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
