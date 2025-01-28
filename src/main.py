@@ -24,10 +24,10 @@ GPIO.setmode(GPIO.BOARD)
 # Relay4 = 11 # BMS 2   // 15 SCADA 2
 
 # pinout for version 1.0.3
-Relay1 = 11 # SCADA 1 
-Relay2 = 15 # BMS 1   
-Relay3 = 13 # SCADA 2 
-Relay4 = 22 # BMS 2   
+Relay1 = 11 # SCADA 1 // 13  BMS 1
+Relay2 = 15 # BMS 1   // 11 BM 2
+Relay3 = 13 # SCADA 2 // 22 SCADA 1
+Relay4 = 22 # BMS 2   // 15 SCADA 2
 
 GPIO.setup(Relay1, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
@@ -176,13 +176,32 @@ def relay_test():
     GPIO.output(Relay2, GPIO.LOW)
 
 def analog_test():
-    print("Creating a 1Hz sinus from 4-") # not posible because 4-20mA unit generater is defect
+    print("Creating a 1Hz sinus from 4-") 
 
-def read_channel(): ##10% afwijking
+
+def read_channel(): ##function for pcb version 3 & 4
     global current
     adc = spi.xfer2([1, (8 + 0) << 4, 0])
     raw_value = ((adc[1] & 3) << 8) + adc[2]
-    #print("the bit value is:", raw_value)
+    print("the bit value is:", raw_value)
+    min_adc = 210 
+    max_adc = 1023  
+    max_current = 100
+    true_zerro = 201.2
+    if raw_value > min_adc:
+        normalized_value = (raw_value - true_zerro) / (max_adc - true_zerro) 
+        current = normalized_value * max_current  
+
+    else:
+        current = 0
+
+    return current
+
+def read_channel_old(): ##function for PCB version 1 & 2, does not work for version 3 & 4
+    global current
+    adc = spi.xfer2([1, (8 + 0) << 4, 0])
+    raw_value = ((adc[1] & 3) << 8) + adc[2]
+    print("the bit value is:", raw_value)
     min_adc = 307 # berekening aanpassen
     max_adc = 1023  
     max_current = 66 # 66 ampere is the technical max # last value 100
@@ -201,9 +220,13 @@ def read_channel(): ##10% afwijking
 
 
 def update_current_display():
-    current_value = read_channel()
-    current_label.configure(text=f"Current: {current_value:.2f} A")
-    app.after(200, update_current_display)  
+    global current_label
+
+    if current_label:
+        current_value = read_channel()
+        current_label.configure(text=f"Current: {current_value:.2f} A")
+
+    app.after(200, update_current_display) 
 
 
 def append_to_input(value):
@@ -291,10 +314,15 @@ def plot_log_report(file):
 
 
 def main_screen_startup():
+    global current_label
     global current_screen
+    
     if current_screen == 1:
         clear_app()
-        
+    
+    current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))
+    current_label.grid(row=5, column=3, columnspan=3, pady=20)
+
     input1 = customtkinter.CTkEntry(app, width=100, height=30, textvariable=BMS_first_input)
     input1.grid(row=1, column=3, padx=20, pady=0)
     input1.bind("<FocusIn>", lambda e: on_focus(input1))
@@ -342,6 +370,9 @@ def main_screen_startup():
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=SCADA_set2).grid(row=3, column=2, padx=20, pady=0)
     customtkinter.CTkButton(app, width=150, height=50, text="Full system test", command=functional_tests).grid(row=1, column=0, padx=20, pady=10)
     customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=log_tab).grid(row=2, column=0, padx=20, pady=10)
+
+    update_current_display()
+
 
 
 
