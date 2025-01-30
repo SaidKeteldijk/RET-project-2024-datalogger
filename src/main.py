@@ -197,7 +197,7 @@ def read_channel(): ##function for pcb version 3 & 4
 
     return current
 
-def read_channel_1_5V(): # current measuring function for 0-10V DC current transducer
+def read_channel_1_5V(): # current measuring function for 0-10V DC current transducer, not yet inplimented
     global current
     adc = spi.xfer2([1, (8 + 1) << 4, 0])  
     raw_value = ((adc[1] & 3) << 8) + adc[2]  
