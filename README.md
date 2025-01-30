@@ -123,7 +123,34 @@ Om in te loggen op de Raspberry zelf om de achterliggende code aan te passen kan
 # Vorige printplaat versies
 
 In de eerdere twee versies van de printplaaten zaten een aantal ontwerp/tekenfouten. De fouten die gevonden zijn:
-- De 4-20mA output loop van versie 1 heeft een kortsluiting.
+- De 4-20mA output loop van versie 1 en 2 hebben een kortsluiting.
 - De buckconverter van versie 1 heeft een kortsluiting.
 - De compute module van versie 2 heeft een probleem met het opstarten, dit komt mogelijk door dat de ENABLE pin geen externe pulse van 1ms ontvangt bij het opstarten. Hier is een rtc met een externe voeding voor nodig.
-- De pinout van de DSI connector van de 
+- De pinout van de DSI connector van de is mogelijk incorrect omdat pin DSI1 is gebruikt in plaats van DSI0.
+
+# Linux configuratie
+
+Voor het opstarten van de VENV(Virtuele omgeving), is 
+
+
+```console
+[Unit]
+Description=test app
+After=graphical.target
+
+[Service]
+User=ret
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/ret/.Xauthority
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=GDK_BACKEND=x11
+Environment=QT_QPA_PLATFORM=xcb
+ExecStart=/bin/bash /home/ret/Desktop/App/start_app.sh
+Restart=always
+RestartSec=10s
+KillMode=process
+TimeoutSec=infinity
+
+[Install]
+WantedBy=graphical.target
+```
