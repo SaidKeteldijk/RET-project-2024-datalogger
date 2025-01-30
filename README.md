@@ -89,7 +89,7 @@ De bugs zijn:
 | Log bestanden missen datum in de naam            | Minder gebruiksvriendelijk   | Open          |
 | Geen 0-10V sensor support     | Functionaliteit beperkt      | Open          |
 | Pyplot soms vertekend         | Visuele weergave             | Closed          |
-| Setpoints blijven niet staan na een rstart     | Verliest instellingen        | Open          |
+| Setpoints blijven niet staan na een restart     | Verliest instellingen        | Open          |
 
 
 # Installatie instructies
