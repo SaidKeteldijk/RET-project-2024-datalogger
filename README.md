@@ -92,7 +92,7 @@ De bugs zijn:
 | Setpoints blijven niet staan na een restart     | Verliest instellingen        | Open          |
 
 
-# Installatie instructies
+# Assemblage instructies
 
 Om de RSM te installeren moeten de volgende stappen worden gevolgd:
 
