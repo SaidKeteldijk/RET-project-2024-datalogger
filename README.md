@@ -67,7 +67,7 @@ De software die op de Raspberry Pi 4B van de RSM draait is als volgt opgebouwd. 
 Hierin wordt er een virtuele omgeving opgebouwd in python, in deze virtuele omgeving VENV (Virtual Environment) wordt de Python app opgestart die alle elektronica bestuurd en de grafische interface beheert.
 De Python source code is te vinden in "RET-project-2024-datalogger > src > main.py".
 
-Voor het starten van de Python app met VENV (Virtual Environment) zijn de volgende command's nodig. Deze commando's ingevuld te worden in de terminal van Linux:
+Voor het handmatig starten van de Python app met VENV (Virtual Environment) zijn de volgende command's nodig. Deze commando's dienen ingevuld te worden in de terminal van Linux:
 
 - cd Desktop/App
 - source myenv/bin/activate << start de VENV
@@ -103,7 +103,7 @@ Om de RSM te installeren moeten de volgende stappen worden gevolgd:
 ![alt text](Raspberry_Pi_4_Model_B_.jpg)
 
 4. Plaats de elektronica in de behuizing en verbind de externe kabels volgens het bekabelsing schema, let hierbij op de polariteiten en de spanningen.
-5. Flash de SD-kaart met de benodigde software, deze software is te vinden in "RET-project-2024-datalogger > Linux Image >")
+5. Flash de SD-kaart met de benodigde software, deze software(RSM-OS.img) is te vinden in de Onedrive of sharepoint omgeving (Het flashen van de software kan via het gebruik van een imager programma, bijv Raspberry Pi imager of balena ether)
 6. Steek de SD-kaart in de SD-kaart houder van de Raspberry Pi.
 7. Verbind de Raspberry Pi volgens het verbindingsschema.
 8. Verbind de Raspberry Pi nu met de 48V en kijk of hij opstart.
@@ -148,7 +148,7 @@ Environment=GDK_BACKEND=x11
 Environment=QT_QPA_PLATFORM=xcb
 ExecStart=/bin/bash /home/ret/Desktop/App/start_app.sh
 Restart=always
-RestartSec=10s
+RestartSec=4's
 KillMode=process
 TimeoutSec=infinity
 
