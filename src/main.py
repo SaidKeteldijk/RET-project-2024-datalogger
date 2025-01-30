@@ -197,6 +197,22 @@ def read_channel(): ##function for pcb version 3 & 4
 
     return current
 
+def read_channel_1_5V(): # current measuring function for 0-10V DC current transducer
+    global current
+    adc = spi.xfer2([1, (8 + 1) << 4, 0])  
+    raw_value = ((adc[1] & 3) << 8) + adc[2]  
+    print("ADC kanaal 1 bit waarde:", raw_value)
+
+    min_adc = 0       
+    max_adc = 1023    
+    min_current = 0   
+    max_current = 100 
+
+    current = (raw_value - min_adc) * (max_current - min_current) / (max_adc - min_adc) + min_current
+    
+    return current
+
+
 def read_channel_old(): ##function for PCB version 1 & 2, does not work for version 3 & 4
     global current
     adc = spi.xfer2([1, (8 + 0) << 4, 0])
