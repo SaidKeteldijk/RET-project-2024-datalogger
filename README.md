@@ -64,7 +64,7 @@ De Raspberry Pi HAT is opgebouwd uit de volgende units:
 # De software
 
 De software die op de Raspberry Pi 4B van de RSM draait is als volgt opgebouwd. Voor het besturingssysteem wordt er een Linux kernel gebruikt (Rasberry OS). 
-Hierin wordt er een virtuele omgeving opgebouwd in python, in deze virtuele omgeving (VM) wordt de Python app opgestart die alle elektronica bestuurd en de grafische interface beheert.
+Hierin wordt er een virtuele omgeving opgebouwd in python, in deze virtuele omgeving VENV (Virtual Environment) wordt de Python app opgestart die alle elektronica bestuurd en de grafische interface beheert.
 De Python source code is te vinden in "RET-project-2024-datalogger > src > main.py".
 
 Voor het starten van de Python app met VENV (Virtual Environment) zijn de volgende command's nodig. Deze commando's ingevuld te worden in de terminal van Linux:
@@ -118,5 +118,11 @@ OHM-installatie. De printplaat bestanden voor de bestelling zijn te vinden in "R
 
 # Inloggegevens
 
-Om in te loggen op de Raspberry zelf om de achterliggende code aan te passen kan er verbinding worden gemaakt met de Raspberry Pi via 
-SSH, VNC of WinSCP. Het wachtwoord hier voor is 
+Om in te loggen op de Raspberry zelf om de achterliggende code aan te passen kan er verbinding worden gemaakt met de Raspberry Pi via SSH, VNC of WinSCP. Het wachtwoord hier voor is te vinden bij de Energie voorziening van de RET (EV).
+
+# Vorige printplaat versies
+
+In de eerdere twee versies van de printplaaten zaten een aantal ontwerp/tekenfouten. De fouten die gevonden zijn:
+- De 4-20mA output loop van versie 1 heeft een kortsluiting.
+- De buckconverter van versie 1 heeft een kortsluiting.
+- 
