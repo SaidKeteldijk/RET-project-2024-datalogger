@@ -86,10 +86,10 @@ De bugs zijn:
 | Bug                           | Impact                       | Status        |
 |-------------------------------|------------------------------|---------------|
 | Updatefunctie Ampere verdwijnt       | Alleen UI-gerelateerd        | Closed          |
-| Log.csv mist datum            | Minder gebruiksvriendelijk   | Open          |
+| Log bestanden missen datum in de naam            | Minder gebruiksvriendelijk   | Open          |
 | Geen 0-10V sensor support     | Functionaliteit beperkt      | Open          |
 | Pyplot soms vertekend         | Visuele weergave             | Closed          |
-| Setpoints niet persistent     | Verliest instellingen        | Open          |
+| Setpoints blijven niet staan na een rstart     | Verliest instellingen        | Open          |
 
 
 # Installatie instructies
@@ -125,7 +125,7 @@ Om in te loggen op de Raspberry zelf om de achterliggende code aan te passen kan
 In de eerdere twee versies van de printplaaten zaten een aantal ontwerp/tekenfouten. De fouten die gevonden zijn:
 - De 4-20mA output loop van versie 1 en 2 hebben een kortsluiting.
 - De buckconverter van versie 1 heeft een kortsluiting.
-- De compute module van versie 2 heeft een probleem met het opstarten, dit komt mogelijk door dat de ENABLE pin geen externe pulse van 1ms ontvangt bij het opstarten. Hier is een rtc met een externe voeding voor nodig.
+- De compute module van versie 2 heeft een probleem met het opstarten, dit komt mogelijk door dat de ENABLE pin geen externe pulse van 1ms ontvangt bij het opstarten. Hier is een rtc(Real Time Clock) met een externe voeding voor nodig.
 - De pinout van de DSI connector van de is mogelijk incorrect omdat pin DSI1 is gebruikt in plaats van DSI0.
 
 # Linux configuratie
