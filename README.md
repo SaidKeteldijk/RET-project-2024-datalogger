@@ -44,6 +44,14 @@ De elektronica van de RSM bestaat uit een Raspberry Pi 4B, een door de RET ontwi
 De pinout(bekabelingsschema) voor de module is hier onder te vinden. De module is in staat om op een DC spanning van 6V tot 50V te werken en ver bruikt gemiddeld 400mA. 
 
 ![alt text](Pinout.png)
+Bekabelingsschema
+
+
+![alt text](Top-cover.png)
+Behuizing bovenkant
+
+![alt text](Bottom-cover.png)
+Behuizing onderkant
 
 De Raspberry Pi HAT is opgebouwd uit de volgende units:
 - Buckconverter om de ingangsspanning om te zetten naar een voedingsspanning van 5VDC.
@@ -95,6 +103,20 @@ Om de RSM te installeren moeten de volgende stappen worden gevolgd:
 ![alt text](Raspberry_Pi_4_Model_B_.jpg)
 
 4. Plaats de elektronica in de behuizing en verbind de externe kabels volgens het bekabelsing schema, let hierbij op de polariteiten en de spanningen.
-5. Upload de benodigde Python bestanden. (De Pyhton bestanden zijn te vinden op deze GitHub "RET-project-2024-datalogger > SRC")
+5. Flash de SD-kaart met de benodigde software, deze software is te vinden in "RET-project-2024-datalogger > Linux Image >")
+6. Steek de SD-kaart in de SD-kaart houder van de Raspberry Pi.
+7. Verbind de Raspberry Pi volgens het verbindingsschema.
+8. Verbind de Raspberry Pi nu met de 48V en kijk of hij opstart.
+9. Sluit de Raspberry nu weer af (dit kan links boven in het menu of door de voeding uit te zetten).
+10. Monteer de Raspberry Pi (met Raspberry Pi HAT en bekabelsing) in de behuizing
 
 
+# Bestel proces 
+
+Voor het bestellen van de printplaat (Raspberry Pi HAT) kan er gebruik gemaakt worden van het eurocircuits account van firma
+OHM-installatie. De printplaat bestanden voor de bestelling zijn te vinden in "RET-project-2024-datalogger > Order files".
+
+# Inloggegevens
+
+Om in te loggen op de Raspberry zelf om de achterliggende code aan te passen kan er verbinding worden gemaakt met de Raspberry Pi via 
+SSH, VNC of WinSCP. Het wachtwoord hier voor is 
