@@ -44,14 +44,14 @@ De elektronica van de RSM bestaat uit een Raspberry Pi 4B, een door de RET ontwi
 De pinout(bekabelingsschema) voor de module is hier onder te vinden. De module is in staat om op een DC spanning van 6V tot 50V te werken en ver bruikt gemiddeld 400mA. 
 
 ![alt text](Pinout.png)
-Bekabelingsschema
+>Bekabelingsschema
 
 
 ![alt text](Top-cover.png)
-Behuizing bovenkant
+>Behuizing bovenkant
 
 ![alt text](Bottom-cover.png)
-Behuizing onderkant
+>Behuizing onderkant
 
 De Raspberry Pi HAT is opgebouwd uit de volgende units:
 - Buckconverter om de ingangsspanning om te zetten naar een voedingsspanning van 5VDC.
@@ -157,4 +157,12 @@ WantedBy=graphical.target
 ```
 > app.service
 
-In deze roetine wordt er wordt gewacht tot dat de grafische omgeving is opgestart. Zodra dit gebeurt is wordt het bestand "start_app.sh" bestand opgestrat
+In deze roetine wordt er wordt gewacht tot dat de grafische omgeving is opgestart. Zodra dit gebeurt is wordt het bestand "start_app.sh" bestand opgestart. In dit bestand staan de Linux commando's die nodig zijn om de VENV(virtuele omgeving) en de python app op te starten.
+
+```
+#!/bin/bash
+cd /home/ret/Desktop/App
+source myenv/bin/activate
+python systemtest.py
+```
+> start_app.sh
