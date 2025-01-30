@@ -130,7 +130,8 @@ In de eerdere twee versies van de printplaaten zaten een aantal ontwerp/tekenfou
 
 # Linux configuratie
 
-Voor het opstarten van de VENV(Virtuele omgeving), is 
+Om bij het opstarten van de Raspberry Pi ook de VENV(Virtuele omgeving) en python app op te starten is er een app.service roetine
+aangemaakt. Het .service bestand is te vinden in "/etc/systemd/system/app.service".
 
 
 ```console
@@ -154,3 +155,6 @@ TimeoutSec=infinity
 [Install]
 WantedBy=graphical.target
 ```
+> app.service
+
+In deze roetine wordt er wordt gewacht tot dat de grafische omgeving is opgestart. Zodra dit gebeurt is wordt het bestand "start_app.sh" bestand opgestrat
