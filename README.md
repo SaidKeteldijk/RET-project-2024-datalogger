@@ -159,7 +159,7 @@ WantedBy=graphical.target
 
 In deze roetine wordt er wordt gewacht tot dat de grafische omgeving is opgestart. Zodra dit gebeurt is wordt het bestand "start_app.sh" bestand opgestart. In dit bestand staan de Linux commando's die nodig zijn om de VENV(virtuele omgeving) en de python app op te starten.
 
-```
+```console
 #!/bin/bash
 cd /home/ret/Desktop/App
 source myenv/bin/activate
