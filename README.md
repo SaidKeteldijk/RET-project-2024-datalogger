@@ -16,7 +16,7 @@ De functionaliteiten van de RSM zijn:
 - Het door sturen van de gemeten stroom waarde via een 4-20mA signaal.
 
 
-# Intro (English)
+# Intro (English)bzfdbzb
 
 This GitHub repository serves as a manual and technical documentation for the hardware and software of the return current module. The information provided in this repository is intended for the technical staff of the Rotterdam Electric Tram (RET) company.
 
@@ -44,7 +44,7 @@ De elektronica van de RSM bestaat uit een Raspberry Pi 4B, een door de RET ontwi
 De pinout(bekabelingsschema) voor de module is hier onder te vinden. De module is in staat om op een DC spanning van 6V tot 50V te werken en ver bruikt gemiddeld 400mA. 
 
 ![alt text](Pinout.png)
->Bekabelingsschema
+>Bekabelingsschema Raspberry Pi HAT 
 
 
 ![alt text](Top-cover.png)

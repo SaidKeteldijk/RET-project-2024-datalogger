@@ -18,12 +18,16 @@ customtkinter.set_default_color_theme("dark-blue")
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 
+# Relay1 = 22 # SCADA 1 //13  BMS 1
+# Relay2 = 13 # BMS 1   // 11 BM 2
+# Relay3 = 15 # SCADA 2 // 22 SCADA 1
+# Relay4 = 11 # BMS 2   // 15 SCADA 2
 
 # pinout for version 1.0.3
-Relay1 = 11
-Relay2 = 15
-Relay3 = 13
-Relay4 = 22
+Relay1 = 11 # SCADA 1 // 13  BMS 1
+Relay2 = 15 # BMS 1   // 11 BM 2
+Relay3 = 13 # SCADA 2 // 22 SCADA 1
+Relay4 = 22 # BMS 2   // 15 SCADA 2
 
 GPIO.setup(Relay1, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
@@ -105,7 +109,7 @@ def SCADA_set2():
 def alarm_check1():
     global BMS_alarm1, log_status
     if BMS_alarm1 is not None:
-        current_value = read_channel()
+        current_value = DC_current_ADC1()
         if current_value > BMS_alarm1 and not log_status:
             log_status = True
             threading.Thread(target=log_data, daemon=True).start()
@@ -118,7 +122,7 @@ def alarm_check1():
 def alarm_check2():
     global BMS_alarm2, log_status
     if BMS_alarm2 is not None:
-        current_value = read_channel()
+        current_value = DC_current_ADC1()
         if current_value > BMS_alarm2 and log_status:
             log_status = False
             GPIO.output(Relay2, GPIO.HIGH)
@@ -130,7 +134,7 @@ def alarm_check2():
 def alarm_check3():
     global SCADA_alarm1
     if SCADA_alarm1 is not None:
-        current_value = read_channel()
+        current_value = DC_current_ADC1()
         if current_value > BMS_alarm1:
             GPIO.output(Relay3, GPIO.HIGH)
         else:
@@ -140,7 +144,7 @@ def alarm_check3():
 def alarm_check4():
     global SCADA_alarm2
     if SCADA_alarm2 is not None:
-        current_value = read_channel()
+        current_value = DC_current_ADC1()
         if current_value > BMS_alarm2:
             GPIO.output(Relay4, GPIO.HIGH)
         else:
@@ -175,7 +179,7 @@ def analog_test():
     print("Creating a 1Hz sinus from 4-") 
 
 
-def read_channel(): ##function for pcb version 3 & 4
+def AC_current_ADC0(): ##function for pcb version 3 & 4
     global current
     adc = spi.xfer2([1, (8 + 0) << 4, 0])
     raw_value = ((adc[1] & 3) << 8) + adc[2]
@@ -193,7 +197,7 @@ def read_channel(): ##function for pcb version 3 & 4
 
     return current
 
-def read_channel_1_5V(): # current measuring function for 0-10V DC current transducer, not yet inplimented
+def DC_current_ADC1(): # current measuring function for 0-10V DC current transducer, not yet inplimented
     global current
     adc = spi.xfer2([1, (8 + 1) << 4, 0])  
     raw_value = ((adc[1] & 3) << 8) + adc[2]  
@@ -203,39 +207,16 @@ def read_channel_1_5V(): # current measuring function for 0-10V DC current trans
     max_adc = 1023    
     min_current = 0   
     max_current = 100 
-
+    
     current = (raw_value - min_adc) * (max_current - min_current) / (max_adc - min_adc) + min_current
     
     return current
-
-
-def read_channel_old(): ##function for PCB version 1 & 2, does not work for version 3 & 4
-    global current
-    adc = spi.xfer2([1, (8 + 0) << 4, 0])
-    raw_value = ((adc[1] & 3) << 8) + adc[2]
-    print("the bit value is:", raw_value)
-    min_adc = 307 # berekening aanpassen
-    max_adc = 1023  
-    max_current = 66 # 66 ampere is the technical max # last value 100
-    if raw_value >= min_adc:
-        normalized_value = (raw_value - min_adc) / (max_adc - min_adc) 
-        #print("factor is:", normalized_value) 
-        current = normalized_value * max_current  
-        #print("The current value: ", current)
-        #print("ADC value:", raw_value)
-
-    else:
-        current = 0
-    
-    return current
-
-
 
 def update_current_display():
     global current_label
 
     if current_label:
-        current_value = read_channel()
+        current_value = DC_current_ADC1()
         current_label.configure(text=f"Current: {current_value:.2f} A")
 
     app.after(200, update_current_display) 
