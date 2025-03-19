@@ -11,6 +11,7 @@ from time import strftime
 import spidev
 import csv
 import threading
+import collections
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("dark-blue")
@@ -62,6 +63,26 @@ BMS_first_input = tkinter.DoubleVar()
 BMS_second_input = tkinter.DoubleVar()
 SCADA_first_input = tkinter.DoubleVar()
 SCADA_second_input = tkinter.DoubleVar()
+
+current_samples = collections.deque(maxlen=2048)  # holds last 256 samples
+current_lock = threading.Lock()
+
+
+
+def continuous_measurement_loop():
+    while True:
+        sample = DC_current_ADC1(samples=1)
+        with current_lock:
+            current_samples.append(sample)
+        time.sleep(0.01)  # 100 samples per second
+
+def continuous_measurement():
+    global current_samples
+    while True:
+        sample = DC_current_ADC1(samples=1)  # single sample per iteration
+        with current_lock:
+            current_samples.append(sample)
+        time.sleep(0.01)  # measure every ~4ms (~256Hz)
 
 
 def on_focus(entry):
@@ -213,23 +234,35 @@ def DC_current_ADC1(samples=5):
     max_current = 50
     average_error = 0.0036248
 
-    raw_value = raw_value - 9.5
+    raw_value = raw_value - 9
 
     if raw_value <= 0:
         raw_value = 0
 
-    current = ((raw_value / max_adc) * max_current)*(1 - average_error)
+    current = ((raw_value / max_adc) * max_current)#*(1 - average_error)
     print("Gemid ADC 1 waarde:", raw_value, "en", current)
     return current
 
 def update_current_display():
-    global current_label
+    # global current_label
 
-    if current_label:
-        current_value = DC_current_ADC1()
-        current_label.configure(text=f"Current: {current_value:.2f} A")
+    # if current_label:
+    #     current_value = DC_current_ADC1()
+    #     current_label.configure(text=f"Current: {current_value:.2f} A")
 
-    app.after(1000, update_current_display) 
+    # app.after(1000, update_current_display) 
+
+    global current_label, current_samples
+
+    with current_lock:
+        if len(current_samples) > 0:
+            current_mean = sum(current_samples) / len(current_samples)
+        else:
+            current_value = 0.0
+
+    current_label.configure(text=f"Current: {current_mean:.2f} A")
+
+    app.after(200, update_current_display)  # update label every second
 
 def alarm_label_update():
     global BMS_alarm1
@@ -421,6 +454,11 @@ def main_screen_startup():
 
     update_current_display()
     alarm_label_update()
+
+
+# add this before app.mainloop()
+measurement_thread = threading.Thread(target=continuous_measurement_loop, daemon=True)
+measurement_thread.start()
 
 
 main_screen_startup()
