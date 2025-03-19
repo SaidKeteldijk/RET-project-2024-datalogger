@@ -197,19 +197,49 @@ def AC_current_ADC0(): ##function for pcb version 3 & 4
 
     return current
 
-def DC_current_ADC1(): # current measuring function for 0-10V DC current transducer, not yet inplimented
-    global current
-    adc = spi.xfer2([1, (8 + 1) << 4, 0])  
-    raw_value = ((adc[1] & 3) << 8) + adc[2]  
-    print("ADC kanaal 1 bit waarde:", raw_value)
+# def DC_current_ADC1(): # current measuring function for 0-5V DC current transducer, not yet inplimented
+#     global current
+#     adc = spi.xfer2([1, (8 + 1) << 4, 0])  
+#     raw_value = ((adc[1] & 3) << 8) + adc[2]  
+#     print("ADC kanaal 1 bit waarde:", raw_value, "en", adc)
 
-    min_adc = 0       
-    max_adc = 1023    
-    min_current = 0   
-    max_current = 100 
-    
-    current = (raw_value - min_adc) * (max_current - min_current) / (max_adc - min_adc) + min_current
-    
+#     average_error = 0.0036248 # average error of the adc and sensor combined      
+#     max_adc = 1023    
+#     adc_noise = 6
+ 
+#     adc_read = raw_value - adc_noise
+#     if (adc_read < 0):
+#         adc_read = 0 
+
+#     current =  ((adc_read/1023)*50)*(1 - average_error)
+#     return current
+
+def DC_current_ADC1(samples=10):
+    global current
+    total = 0
+    for _ in range(samples):
+        adc = spi.xfer2([1, (8 + 1) << 4, 0])  
+        raw_value = ((adc[1] & 3) << 8) + adc[2]  
+        total += raw_value
+    raw_value = total / samples  # Gemiddelde van meerdere metingen
+    # print("Gemiddelde ADC kanaal 1 bit waarde:", raw_value, "en", current)
+
+    # Kalibratie parameters
+    max_adc = 1023
+    min_current = 0
+    max_current = 50
+    average_error = 0.0036248
+    # offset = 8
+    # corrected_value = raw_value - offset
+    # if corrected_value < 0:
+    #     corrected_value = 0
+    raw_value = raw_value - 8
+
+    if raw_value <= 0:
+        raw_value = 0
+
+    current = ((raw_value / max_adc) * max_current)#*(1 - average_error)
+    print("Gemid ADC 1 waarde:", raw_value, "en", current)
     return current
 
 def update_current_display():
@@ -219,7 +249,7 @@ def update_current_display():
         current_value = DC_current_ADC1()
         current_label.configure(text=f"Current: {current_value:.2f} A")
 
-    app.after(200, update_current_display) 
+    app.after(1000, update_current_display) 
 
 
 def append_to_input(value):
