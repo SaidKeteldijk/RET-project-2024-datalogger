@@ -12,6 +12,7 @@ import spidev
 import csv
 import threading
 import collections
+from tkinter import messagebox
 
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("dark-blue")
@@ -67,7 +68,7 @@ SCADA_second_input = tkinter.DoubleVar()
 current_samples = collections.deque(maxlen=2048)  # holds last 256 samples
 current_lock = threading.Lock()
 
-
+calibration_offset = 0.0
 
 def continuous_measurement_loop():
     while True:
@@ -240,7 +241,7 @@ def DC_current_ADC1(samples=5):
         raw_value = 0
 
     current = ((raw_value / max_adc) * max_current)#*(1 - average_error)
-    print("Gemid ADC 1 waarde:", raw_value, "en", current)
+    #print("Gemid ADC 1 waarde:", raw_value, "en", current)
     return current
 
 def update_current_display():
@@ -375,6 +376,26 @@ def plot_log_report(file):
     except Exception as e:
         print(f"Error reading or plotting CSV file: {e}")
 
+def calibrate_sensor():
+    global calibration_offset
+
+    print("Calibrating sensor... Ensure current is zero.")
+    messagebox.showinfo("Calibration", "Calibration started. Ensure current is zero.")
+
+    samples = 256
+    total = 0
+    for _ in range(samples):
+        adc = spi.xfer2([1, (8 + 1) << 4, 0])  
+        raw_value = ((adc[1] & 3) << 8) + adc[2]
+        total += raw_value
+        time.sleep(0.005)  # short delay (~5ms)
+
+    calibration_offset = total / samples
+    print(f"Calibration complete. Offset: {calibration_offset:.2f}")
+
+    messagebox.showinfo("Calibration", f"Calibration completed!\nOffset: {calibration_offset:.2f}")
+
+
 
 def main_screen_startup():
     global current_label
@@ -451,6 +472,9 @@ def main_screen_startup():
     customtkinter.CTkButton(app, width=60, height=30, text="SET", command=SCADA_set2).grid(row=3, column=2, padx=20, pady=0)
     customtkinter.CTkButton(app, width=150, height=50, text="Full system test", command=functional_tests).grid(row=1, column=0, padx=20, pady=10)
     customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=log_tab).grid(row=2, column=0, padx=20, pady=10)
+
+    customtkinter.CTkButton(app, width=150, height=50, text="Calibrate Sensor", command=calibrate_sensor).grid(row=5, column=0, padx=10, pady=10)
+
 
     update_current_display()
     alarm_label_update()
