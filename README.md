@@ -16,7 +16,7 @@ De functionaliteiten van de RSM zijn:
 - Het door sturen van de gemeten stroom waarde via een 4-20mA signaal.
 
 
-# Intro (English)bzfdbzb
+# Intro (English)
 
 This GitHub repository serves as a manual and technical documentation for the hardware and software of the return current module. The information provided in this repository is intended for the technical staff of the Rotterdam Electric Tram (RET) company.
 
