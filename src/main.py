@@ -18,10 +18,7 @@ customtkinter.set_default_color_theme("dark-blue")
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 
-# Relay1 = 22 # SCADA 1 //13  BMS 1
-# Relay2 = 13 # BMS 1   // 11 BM 2
-# Relay3 = 15 # SCADA 2 // 22 SCADA 1
-# Relay4 = 11 # BMS 2   // 15 SCADA 2
+
 
 # pinout for version 1.0.3
 Relay1 = 11 # SCADA 1 // 13  BMS 1
@@ -38,6 +35,11 @@ BMS_alarm1 = None
 BMS_alarm2 = None
 SCADA_alarm1 = None
 SCADA_alarm2 = None
+
+BMS1_label = None
+BMS2_label = None
+SCADA1_label = None
+SCADA2_label = None
 
 current = None
 
@@ -60,9 +62,6 @@ BMS_first_input = tkinter.DoubleVar()
 BMS_second_input = tkinter.DoubleVar()
 SCADA_first_input = tkinter.DoubleVar()
 SCADA_second_input = tkinter.DoubleVar()
-
-current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))
-current_label.grid(row=5, column=3, columnspan=3, pady=20)
 
 
 def on_focus(entry):
@@ -197,24 +196,8 @@ def AC_current_ADC0(): ##function for pcb version 3 & 4
 
     return current
 
-# def DC_current_ADC1(): # current measuring function for 0-5V DC current transducer, not yet inplimented
-#     global current
-#     adc = spi.xfer2([1, (8 + 1) << 4, 0])  
-#     raw_value = ((adc[1] & 3) << 8) + adc[2]  
-#     print("ADC kanaal 1 bit waarde:", raw_value, "en", adc)
 
-#     average_error = 0.0036248 # average error of the adc and sensor combined      
-#     max_adc = 1023    
-#     adc_noise = 6
- 
-#     adc_read = raw_value - adc_noise
-#     if (adc_read < 0):
-#         adc_read = 0 
-
-#     current =  ((adc_read/1023)*50)*(1 - average_error)
-#     return current
-
-def DC_current_ADC1(samples=10):
+def DC_current_ADC1(samples=5):
     global current
     total = 0
     for _ in range(samples):
@@ -224,21 +207,18 @@ def DC_current_ADC1(samples=10):
     raw_value = total / samples  # Gemiddelde van meerdere metingen
     # print("Gemiddelde ADC kanaal 1 bit waarde:", raw_value, "en", current)
 
-    # Kalibratie parameters
+
     max_adc = 1023
     min_current = 0
     max_current = 50
     average_error = 0.0036248
-    # offset = 8
-    # corrected_value = raw_value - offset
-    # if corrected_value < 0:
-    #     corrected_value = 0
-    raw_value = raw_value - 8
+
+    raw_value = raw_value - 9.5
 
     if raw_value <= 0:
         raw_value = 0
 
-    current = ((raw_value / max_adc) * max_current)#*(1 - average_error)
+    current = ((raw_value / max_adc) * max_current)*(1 - average_error)
     print("Gemid ADC 1 waarde:", raw_value, "en", current)
     return current
 
@@ -251,6 +231,33 @@ def update_current_display():
 
     app.after(1000, update_current_display) 
 
+def alarm_label_update():
+    global BMS_alarm1
+    global BMS_alarm2
+    global SCADA_alarm1
+    global SCADA_alarm2
+
+    if BMS_alarm1 is not None:
+        BMS1_label.configure(text=f"BMS first alarm: {BMS_alarm1:.2f} A")
+    else:
+        BMS1_label.configure(text="BMS first alarm: unavailable")
+    
+    if BMS_alarm2 is not None:
+        BMS2_label.configure(text=f"BMS second alarm: {BMS_alarm2:.2f} A")
+    else:
+        BMS2_label.configure(text="BMS second alarm: unavailable")
+
+    if SCADA_alarm1 is not None:
+        SCADA1_label.configure(text=f"SCADA first alarm: {SCADA_alarm1:.2f} A")
+    else:
+        SCADA1_label.configure(text="SCADA first alarm: unavailable")
+
+    if SCADA_alarm2 is not None:
+        SCADA2_label.configure(text=f"SCADA second alarm: {SCADA_alarm2:.2f} A")
+    else:
+        SCADA2_label.configure(text="SCADA second alarm: unavailable")
+
+    app.after(500, alarm_label_update)  # update every 500ms
 
 def append_to_input(value):
     if focused_entry:
@@ -338,6 +345,10 @@ def plot_log_report(file):
 
 def main_screen_startup():
     global current_label
+    global BMS1_label
+    global BMS2_label
+    global SCADA1_label
+    global SCADA2_label
     global current_screen
     
     if current_screen == 1:
@@ -345,6 +356,20 @@ def main_screen_startup():
     
     current_label = customtkinter.CTkLabel(app, text="Current: 0.00 A", font=("Arial", 24))
     current_label.grid(row=5, column=3, columnspan=3, pady=20)
+
+    
+    BMS1_label = customtkinter.CTkLabel(app, text="BMS first alarm: 0.00 A", font=("Arial", 12))
+    BMS1_label.grid(row=6, column=0, columnspan=1, pady=5)
+
+    BMS2_label = customtkinter.CTkLabel(app, text="BMS second alarm: 0.00 A", font=("Arial", 12))
+    BMS2_label.grid(row=7, column=0, columnspan=1, pady=5)
+
+    SCADA1_label = customtkinter.CTkLabel(app, text="SCADA first alarm: 0.00 A", font=("Arial", 12))
+    SCADA1_label.grid(row=8, column=0, columnspan=1, pady=5)
+
+    SCADA2_label = customtkinter.CTkLabel(app, text="SCADA second alarm: 0.00 A", font=("Arial", 12))
+    SCADA2_label.grid(row=9, column=0, columnspan=1, pady=5)
+
 
     input1 = customtkinter.CTkEntry(app, width=100, height=30, textvariable=BMS_first_input)
     input1.grid(row=1, column=3, padx=20, pady=0)
@@ -395,8 +420,7 @@ def main_screen_startup():
     customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=log_tab).grid(row=2, column=0, padx=20, pady=10)
 
     update_current_display()
-
-
+    alarm_label_update()
 
 
 main_screen_startup()
@@ -405,7 +429,9 @@ alarm_check1()
 alarm_check2()
 alarm_check3()
 alarm_check4()
+alarm_label_update()
 update_current_display()
+
 
 
 app.mainloop()
