@@ -33,6 +33,7 @@ GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay3, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay4, GPIO.OUT, initial=GPIO.LOW)
 
+alarm_current = None
 BMS_alarm1 = None
 BMS_alarm2 = None
 SCADA_alarm1 = None
@@ -65,7 +66,7 @@ BMS_second_input = tkinter.DoubleVar()
 SCADA_first_input = tkinter.DoubleVar()
 SCADA_second_input = tkinter.DoubleVar()
 
-current_samples = collections.deque(maxlen=2048)  # holds last 256 samples
+current_samples = collections.deque(maxlen=256)  # holds last 256 samples
 current_lock = threading.Lock()
 
 calibration_offset = 0.0
@@ -77,13 +78,13 @@ def continuous_measurement_loop():
             current_samples.append(sample)
         time.sleep(0.01)  # 100 samples per second
 
-def continuous_measurement():
-    global current_samples
-    while True:
-        sample = DC_current_ADC1(samples=1)  # single sample per iteration
-        with current_lock:
-            current_samples.append(sample)
-        time.sleep(0.01)  # measure every ~4ms (~256Hz)
+# def continuous_measurement():
+#     global current_samples
+#     while True:
+#         sample = DC_current_ADC1(samples=1)  # single sample per iteration
+#         with current_lock:
+#             current_samples.append(sample)
+#         time.sleep(0.01)  # measure every ~4ms (~256Hz)
 
 
 def on_focus(entry):
@@ -128,45 +129,45 @@ def SCADA_set2():
         print("SCADA Alarm 2 set to:", SCADA_alarm2)
 
 def alarm_check1():
-    global BMS_alarm1, log_status
+    global BMS_alarm1, log_status, alarm_current
     if BMS_alarm1 is not None:
-        current_value = DC_current_ADC1()
-        if current_value > BMS_alarm1 and not log_status:
+        # current_value = DC_current_ADC1()
+        if alarm_current > BMS_alarm1 and not log_status:
             log_status = True
             threading.Thread(target=log_data, daemon=True).start()
             GPIO.output(Relay1, GPIO.HIGH)
-        elif current_value <= BMS_alarm1 and log_status:
+        elif alarm_current <= BMS_alarm1 and log_status:
             log_status = False
             GPIO.output(Relay1, GPIO.LOW)
     app.after(300, alarm_check1)
 
 def alarm_check2():
-    global BMS_alarm2, log_status
+    global BMS_alarm2, log_status, alarm_current
     if BMS_alarm2 is not None:
-        current_value = DC_current_ADC1()
-        if current_value > BMS_alarm2 and log_status:
+        # current_value = DC_current_ADC1()
+        if alarm_current > BMS_alarm2 and log_status:
             log_status = False
             GPIO.output(Relay2, GPIO.HIGH)
-        elif current_value <= BMS_alarm2:
+        elif alarm_current <= BMS_alarm2:
             GPIO.output(Relay2, GPIO.LOW)
     app.after(300, alarm_check2)
 
 
 def alarm_check3():
-    global SCADA_alarm1
+    global SCADA_alarm1, alarm_current
     if SCADA_alarm1 is not None:
-        current_value = DC_current_ADC1()
-        if current_value > BMS_alarm1:
+        # current_value = DC_current_ADC1()
+        if alarm_current > BMS_alarm1:
             GPIO.output(Relay3, GPIO.HIGH)
         else:
             GPIO.output(Relay3, GPIO.LOW)
     app.after(300, alarm_check3)
 
 def alarm_check4():
-    global SCADA_alarm2
+    global SCADA_alarm2, alarm_current
     if SCADA_alarm2 is not None:
-        current_value = DC_current_ADC1()
-        if current_value > BMS_alarm2:
+        # current_value = DC_current_ADC1()
+        if alarm_current > BMS_alarm2:
             GPIO.output(Relay4, GPIO.HIGH)
         else:
             GPIO.output(Relay4, GPIO.LOW)
@@ -221,13 +222,14 @@ def AC_current_ADC0(): ##function for pcb version 3 & 4
 
 def DC_current_ADC1(samples=5):
     global current
+    global calibration_offset
     total = 0
     for _ in range(samples):
         adc = spi.xfer2([1, (8 + 1) << 4, 0])  
         raw_value = ((adc[1] & 3) << 8) + adc[2]  
         total += raw_value
     raw_value = total / samples  # Gemiddelde van meerdere metingen
-    # print("Gemiddelde ADC kanaal 1 bit waarde:", raw_value, "en", current)
+    print("Gemiddelde ADC kanaal 1 bit waarde:", raw_value, "en", current)
 
 
     max_adc = 1023
@@ -235,7 +237,7 @@ def DC_current_ADC1(samples=5):
     max_current = 50
     average_error = 0.0036248
 
-    raw_value = raw_value - 9
+    raw_value = raw_value - calibration_offset
 
     if raw_value <= 0:
         raw_value = 0
@@ -253,17 +255,20 @@ def update_current_display():
 
     # app.after(1000, update_current_display) 
 
-    global current_label, current_samples
+    global current_label, current_samples, alarm_current
 
     with current_lock:
         if len(current_samples) > 0:
             current_mean = sum(current_samples) / len(current_samples)
+            alarm_current = current_mean
         else:
             current_value = 0.0
 
     current_label.configure(text=f"Current: {current_mean:.2f} A")
 
     app.after(200, update_current_display)  # update label every second
+    # current_label.configure(text=f"Current: {current:.2f} A")
+    # app.after(200, update_current_display)
 
 def alarm_label_update():
     global BMS_alarm1
@@ -274,22 +279,22 @@ def alarm_label_update():
     if BMS_alarm1 is not None:
         BMS1_label.configure(text=f"BMS first alarm: {BMS_alarm1:.2f} A")
     else:
-        BMS1_label.configure(text="BMS first alarm: unavailable")
+        BMS1_label.configure(text="BMS first alarm: None")
     
     if BMS_alarm2 is not None:
         BMS2_label.configure(text=f"BMS second alarm: {BMS_alarm2:.2f} A")
     else:
-        BMS2_label.configure(text="BMS second alarm: unavailable")
+        BMS2_label.configure(text="BMS second alarm: None")
 
     if SCADA_alarm1 is not None:
         SCADA1_label.configure(text=f"SCADA first alarm: {SCADA_alarm1:.2f} A")
     else:
-        SCADA1_label.configure(text="SCADA first alarm: unavailable")
+        SCADA1_label.configure(text="SCADA first alarm: None")
 
     if SCADA_alarm2 is not None:
         SCADA2_label.configure(text=f"SCADA second alarm: {SCADA_alarm2:.2f} A")
     else:
-        SCADA2_label.configure(text="SCADA second alarm: unavailable")
+        SCADA2_label.configure(text="SCADA second alarm: None")
 
     app.after(500, alarm_label_update)  # update every 500ms
 
@@ -382,7 +387,7 @@ def calibrate_sensor():
     print("Calibrating sensor... Ensure current is zero.")
     messagebox.showinfo("Calibration", "Calibration started. Ensure current is zero.")
 
-    samples = 256
+    samples = 512
     total = 0
     for _ in range(samples):
         adc = spi.xfer2([1, (8 + 1) << 4, 0])  
