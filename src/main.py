@@ -25,7 +25,7 @@ customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("dark-blue")
 
 # Relay pins (BCM)
-Relay1 = 17  # bijv. fysiek pin 11
+Relay1 = 17  # voorbeeld: fysiek pin 11
 Relay2 = 22  # fysiek pin 15
 Relay3 = 27  # fysiek pin 13
 Relay4 = 25  # fysiek pin 22
@@ -61,14 +61,11 @@ adc_spi.max_speed_hz = 1350000
 adc_spi.mode = 0  # MCP3008 werkt meestal in SPI mode 0
 
 # ------------------- SPI - DAC8551 via software CS -------------------
-# We hergebruiken dezelfde MOSI/SCLK-lijnen, maar togglen zelf GPIO7 als CS.
-DAC_CS = 7     # fysiek pin 26, in BCM numbering
+# We delen MOSI/SCLK met de ADC, maar toggelen GPIO7 als CS voor de DAC.
+DAC_CS = 7  # fysiek pin 26 in BCM numbering
 GPIO.setup(DAC_CS, GPIO.OUT, initial=GPIO.HIGH)
 
-# Om ook voor de DAC te schrijven, gebruiken we OOK spidev, maar het mag
-# in principe dezelfde bus (bus=0) zijn. Je kunt daarvoor hetzélfde spidev-object
-# hergebruiken of een tweede. Hier doen we voor de DAC gewoon "adc_spi" hergebruiken
-# en manuelt CS laag/hoog toggelen. Let wel op mode en speed:
+# We hergebruiken 'adc_spi' voor DAC‐writes. Let op mode/speed voor de DAC:
 adc_spi.mode = 1  # DAC8551 vraagt vaak mode 1 of 2
 adc_spi.max_speed_hz = 1_000_000
 
@@ -94,13 +91,9 @@ LOG_FOLDER = "/home/ret/Desktop/App/Log"
 SETTINGS_FILE = "/home/ret/Desktop/App/settings.json"
 
 # ------------------- LOGGING -------------------
-# Hysteresis om te voorkomen dat het loggen steeds start/stop bij kleine schommelingen
 LOG_HYSTERESIS = 0.5
-
-logging_active = False  # True/False of we op dit moment aan het loggen zijn
+logging_active = False
 logfile_handle = None
-
-# File index zodat we nieuwe bestanden maken log_file_0001.csv, log_file_0002.csv, etc.
 log_file_index = 0
 
 def find_next_log_index(log_dir=LOG_FOLDER):
@@ -299,7 +292,7 @@ def SCADA_set2():
         messagebox.showinfo("Alarm setting", f"SCADA Alarm 2 set to: {val:.2f}")
     save_settings()
 
-# ------------------- DAC (DAC8551) SCHRIJFFUNCTIE -------------------
+# ------------------- DAC (DAC8551) FUNCTIES -------------------
 def write_dac8551(dac_value):
     """
     Schrijf 16 bits naar de DAC8551 (0..65535).
@@ -313,16 +306,31 @@ def write_dac8551(dac_value):
     high_byte = (dac_value >> 8) & 0xFF
     low_byte  = dac_value & 0xFF
 
-    # SYNC (DAC_CS) laag
     GPIO.output(DAC_CS, GPIO.LOW)
-    # Verstuur 3 bytes: control=0, high, low
     adc_spi.xfer2([0x00, high_byte, low_byte])
-    # SYNC weer hoog
     GPIO.output(DAC_CS, GPIO.HIGH)
+
+def set_dac_for_current(amps):
+    """
+    Zet de DAC-uitgang op 1..5 V afhankelijk van gemeten stroom 0..50 A.
+       0 A -> 1 V
+      50 A -> 5 V
+    Alles daartussen lineair.
+    """
+    if amps < 0:
+        amps = 0
+    if amps > 50:
+        amps = 50
+    # spanning = 1 + (amps / 50)*4
+    voltage = 1.0 + (amps / 50.0) * 4.0
+    # Schaal naar 16 bits DAC => 0..65535, bij 5 V = fullscale
+    dac_value = int((voltage / 5.0) * 65535)
+    write_dac8551(dac_value)
 
 def analog_test():
     """
     Genereert een 0-5V sinusgolf met 1Hz (5 cycli) via de DAC8551.
+    (Losstaande test, blijft ook in de code voor debug.)
     """
     print("Generating a 1Hz 0–5V sine wave on DAC8551...")
 
@@ -333,15 +341,13 @@ def analog_test():
     total_samples = int(sample_rate * cycles_to_play)
 
     for n in range(total_samples):
-        t = (n % sample_rate) / float(sample_rate)  # 0..1 fractie
-        # sinus(2πt) is -1..1 -> scale naar 0..5 V
+        t = (n % sample_rate) / float(sample_rate)
         voltage = 2.5 * (1.0 + math.sin(2 * math.pi * t))
         dac_value = int((voltage / 5.0) * 65535)
 
         write_dac8551(dac_value)
-
         time.sleep(period / sample_rate)
-    write_dac8551(0)
+
     print("Done sending 5 cycles of a 1Hz sine wave.")
 
 # ------------------- TESTS & RELAYS -------------------
@@ -412,7 +418,13 @@ def update_current_display():
             alarm_current = 0.0
 
     current_label.configure(text=f"Current: {current_mean:.2f} A")
+
+    # 1) Logging-check
     check_and_log(alarm_current)
+
+    # 2) Zet de DAC-uitgang in range 1-5 V voor 0-50 A
+    set_dac_for_current(current_mean)
+
     app.after(200, update_current_display)
 
 def alarm_label_update():
@@ -602,7 +614,7 @@ def main_screen_startup():
 
 # ------------------- START MEASUREMENT THREAD -------------------
 def on_close():
-    stop_logging()  # Sluit log-bestand als we nog aan het loggen zijn
+    stop_logging()
     app.destroy()
 
 measurement_thread = threading.Thread(target=continuous_measurement_loop, daemon=True)
