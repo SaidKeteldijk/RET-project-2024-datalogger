@@ -188,7 +188,7 @@ def load_settings():
         BMS_alarm2 = data.get("BMS_alarm2", None)
         SCADA_alarm1 = data.get("SCADA_alarm1", None)
         SCADA_alarm2 = data.get("SCADA_alarm2", None)
-        # Als je ook je calibratie-offset wil opslaan/teruglezen:
+        # Als je ook je calibratie-offset wilt opslaan/teruglezen:
         calibration_offset = data.get("calibration_offset", 0.0)
 
         print("[SETTINGS] Settings geladen uit:", SETTINGS_FILE)
@@ -259,42 +259,74 @@ def alarm_check4():
             GPIO.output(Relay4, GPIO.LOW)
     app.after(300, alarm_check4)
 
-# ------------------- SET ALARM CALLBACKS (opslaan daarna) -------------------
+# ------------------- SET ALARM CALLBACKS -------------------
 def BMS_set1():
     global BMS_alarm1
-    if BMS_first_input.get() < 0:
-        print("ERROR: INVALID VALUE")
+    val = BMS_first_input.get()
+
+    # Als de gebruiker 0 of minder invoert, deactiveer het alarm
+    if val <= 0:
+        BMS_alarm1 = None
+        messagebox.showinfo("Alarm setting", "BMS Alarm 1 is now deactivated (None).")
     else:
-        BMS_alarm1 = BMS_first_input.get()
-        print("BMS Alarm 1 set to:", BMS_alarm1)
-        save_settings()  # <-- opslaan in JSON
+        BMS_alarm1 = val
+        messagebox.showinfo("Alarm setting", f"BMS Alarm 1 set to: {val:.2f}")
+
+    save_settings()
 
 def BMS_set2():
-    global BMS_alarm2
-    if BMS_second_input.get() <= BMS_first_input.get():
-        print("The second alarm cannot be lower than the first alarm")
+    global BMS_alarm2, BMS_alarm1
+    val = BMS_second_input.get()
+
+    # Als de gebruiker 0 of minder invoert, deactiveer het alarm
+    if val <= 0:
+        BMS_alarm2 = None
+        messagebox.showinfo("Alarm setting", "BMS Alarm 2 is now deactivated (None).")
     else:
-        BMS_alarm2 = BMS_second_input.get()
-        print("BMS Alarm 2 set to:", BMS_alarm2)
-        save_settings()
+        # Controleer of BMS_alarm1 een waarde heeft en val <= BMS_alarm1
+        if BMS_alarm1 is not None and val <= BMS_alarm1:
+            messagebox.showwarning(
+                "Invalid Alarm Setting",
+                "The second BMS alarm cannot be lower or equal to the first BMS alarm."
+            )
+            return
+        BMS_alarm2 = val
+        messagebox.showinfo("Alarm setting", f"BMS Alarm 2 set to: {val:.2f}")
+
+    save_settings()
 
 def SCADA_set1():
     global SCADA_alarm1
-    if SCADA_first_input.get() < 0:
-        print("ERROR: INVALID VALUE")
+    val = SCADA_first_input.get()
+
+    if val <= 0:
+        SCADA_alarm1 = None
+        messagebox.showinfo("Alarm setting", "SCADA Alarm 1 is now deactivated (None).")
     else:
-        SCADA_alarm1 = SCADA_first_input.get()
-        print("SCADA Alarm 1 set to:", SCADA_alarm1)
-        save_settings()
+        SCADA_alarm1 = val
+        messagebox.showinfo("Alarm setting", f"SCADA Alarm 1 set to: {val:.2f}")
+
+    save_settings()
 
 def SCADA_set2():
-    global SCADA_alarm2
-    if SCADA_second_input.get() < 0:
-        print("ERROR: INVALID VALUE")
+    global SCADA_alarm2, SCADA_alarm1
+    val = SCADA_second_input.get()
+
+    if val <= 0:
+        SCADA_alarm2 = None
+        messagebox.showinfo("Alarm setting", "SCADA Alarm 2 is now deactivated (None).")
     else:
-        SCADA_alarm2 = SCADA_second_input.get()
-        print("SCADA Alarm 2 set to:", SCADA_alarm2)
-        save_settings()
+        # Controleer of SCADA_alarm1 een waarde heeft en val <= SCADA_alarm1
+        if SCADA_alarm1 is not None and val <= SCADA_alarm1:
+            messagebox.showwarning(
+                "Invalid Alarm Setting",
+                "The second SCADA alarm cannot be lower or equal than the first SCADA alarm."
+            )
+            return
+        SCADA_alarm2 = val
+        messagebox.showinfo("Alarm setting", f"SCADA Alarm 2 set to: {val:.2f}")
+
+    save_settings()
 
 # ------------------- TESTS & RELAYS -------------------
 def functional_tests():
@@ -322,7 +354,7 @@ def relay_test():
     GPIO.output(Relay2, GPIO.LOW)
 
 def analog_test():
-    print("Creating a 1Hz sinus from 4-20mA (Not yet implemented)") 
+    print("Creating a 1Hz sinus from 4-20mA (Not yet implemented)")
 
 # ------------------- ADC FUNCTIES -------------------
 def AC_current_ADC0():
@@ -609,7 +641,7 @@ log_file_index = find_next_log_index()
 # LAAD DE VOORHEEN OPGESLAGEN INSTELLINGEN
 load_settings()
 
-# Toon nu de main-screen
+# Toon nu het hoofdscherm
 main_screen_startup()
 
 # Start periodic alarm checks
