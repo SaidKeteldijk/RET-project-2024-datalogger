@@ -10,6 +10,7 @@ import collections
 from tkinter import messagebox
 import os
 import re
+import json  # <--- voor opslaan/laden van instellingen
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -32,32 +33,32 @@ GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay3, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay4, GPIO.OUT, initial=GPIO.LOW)
 
-# Alarms (user‐set from the GUI)
+# Alarms (user-set vanuit de GUI)
 alarm_current = None
 BMS_alarm1 = None
 BMS_alarm2 = None
 SCADA_alarm1 = None
 SCADA_alarm2 = None
 
-# For labels
+# Voor labels
 BMS1_label = None
 BMS2_label = None
 SCADA1_label = None
 SCADA2_label = None
 current_label = None
 
-# We store many samples to compute a stable average
+# We bewaren veel samples om een stabiel gemiddelde te maken
 current_samples = collections.deque(maxlen=256)
 current_lock = threading.Lock()
 
-# For ADC
+# Voor ADC
 current = None
 calibration_offset = 0.0
 spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = 1350000
 
-# For GUI
+# Voor GUI
 app = customtkinter.CTk()
 app.geometry("800x480")
 app.title("RET Demo Dashboard")
@@ -65,40 +66,38 @@ app.grid_columnconfigure(0, weight=1)
 app.grid_columnconfigure(1, weight=1)
 focused_entry = None
 
-# Numeric input variables
+# Numeric input variabelen
 BMS_first_input = tkinter.DoubleVar()
 BMS_second_input = tkinter.DoubleVar()
 SCADA_first_input = tkinter.DoubleVar()
 SCADA_second_input = tkinter.DoubleVar()
 
-# Which screen the user is on (main or functional tests)
+# Huidig scherm (main of functional tests)
 current_screen = 0
 
-# ------------------- NEW LOGGING STATE MACHINE -------------------
+# ------------------- BESTANDSLOCATIES -------------------
 LOG_FOLDER = "/home/ret/Desktop/App/Log"
+SETTINGS_FILE = "/home/ret/Desktop/App/settings.json"
 
-# States of the logging machine:
-#  - BELOW_ALARM1
-#  - BETWEEN_ALARMS
-#  - ABOVE_ALARM2
-current_state = "BELOW_ALARM1"
+# ------------------- LOGGING -------------------
+# Hysteresis om te voorkomen dat het loggen steeds start/stop bij kleine schommelingen
+LOG_HYSTERESIS = 0.5
 
-# Logging flags & file handle
-logging_active = False
+logging_active = False  # True/False of we op dit moment aan het loggen zijn
 logfile_handle = None
 
-# File index so we name new files as log_file_0001.csv, log_file_0002.csv, etc.
+# File index zodat we nieuwe bestanden maken log_file_0001.csv, log_file_0002.csv, etc.
 log_file_index = 0
 
 def find_next_log_index(log_dir=LOG_FOLDER):
     """
-    Look for existing log_file_####.csv files, find the highest number,
-    and return one higher so we don't overwrite old logs.
+    Zoek bestaande log_file_####.csv bestanden, vind het hoogste nummer,
+    en geef er eentje hoger terug.
     """
     highest = 0
     pattern = re.compile(r"^log_file_(\d{4})\.csv$")
     if not os.path.isdir(log_dir):
-        os.makedirs(log_dir)  # Create the directory if needed
+        os.makedirs(log_dir)  # Maak de directory aan indien niet bestaand
     for filename in os.listdir(log_dir):
         match = pattern.match(filename)
         if match:
@@ -109,8 +108,8 @@ def find_next_log_index(log_dir=LOG_FOLDER):
 
 def get_next_log_filename():
     """
-    Returns something like "/home/ret/Desktop/App/Log/log_file_0001.csv"
-    and increments log_file_index for next time.
+    Bepaal een nieuwe bestandsnaam (bv. log_file_0001.csv)
+    en verhoog de globale log_file_index.
     """
     global log_file_index
     filename = f"log_file_{log_file_index:04d}.csv"
@@ -119,19 +118,19 @@ def get_next_log_filename():
     return full_path
 
 def start_logging():
-    """Opens a new CSV file and sets logging_active = True."""
+    """Maak een nieuw CSV-bestand aan en zet logging_active op True."""
     global logging_active, logfile_handle
     if logging_active:
-        return  # already logging
+        return  # We zijn al bezig met loggen
     new_csv = get_next_log_filename()
     print(f"[LOG] Starting new CSV file: {new_csv}")
-    logfile_handle = open(new_csv, "w", buffering=1)  # line‐buffered
-    # Optionally write header
+    logfile_handle = open(new_csv, "w", buffering=1)  # line-buffered
+    # Eventueel header schrijven
     logfile_handle.write("Timestamp,Current\n")
     logging_active = True
 
 def stop_logging():
-    """Stops logging and closes the CSV file."""
+    """Stop logging en sluit het CSV-bestand."""
     global logging_active, logfile_handle
     if logging_active and logfile_handle is not None:
         print("[LOG] Stopping logging and saving file.")
@@ -141,56 +140,87 @@ def stop_logging():
 
 def check_and_log(current_val):
     """
-    Main state machine for logging between BMS_alarm1 and BMS_alarm2.
-    If the user hasn't set them yet (None), do nothing.
+    Deze functie start/stop het loggen **alleen** op basis van BMS_alarm1,
+    met hysterese om snel heen-en-weer logfiles te voorkomen.
+
+    - Start loggen zodra current_val >= BMS_alarm1.
+    - Stop loggen zodra current_val <= (BMS_alarm1 - LOG_HYSTERESIS).
+
+    Als BMS_alarm1 niet is ingesteld, doet de functie niets.
     """
-    global current_state
+    global logging_active, logfile_handle, BMS_alarm1
 
-    # We only proceed if BMS_alarm1 and BMS_alarm2 are defined
-    if BMS_alarm1 is None or BMS_alarm2 is None:
-        return
+    if BMS_alarm1 is None:
+        return  # Nog niet ingesteld, doe niks
 
-    # Let's define local A1 and A2 in case user sets them in reverse
-    A1 = min(BMS_alarm1, BMS_alarm2)
-    A2 = max(BMS_alarm1, BMS_alarm2)
+    # Start- en stoptreshold:
+    start_threshold = BMS_alarm1
+    stop_threshold = BMS_alarm1 - LOG_HYSTERESIS
+    if stop_threshold < 0:
+        stop_threshold = 0  # Voorkom negatieve stopdrempel
 
-    # --- State transitions ---
-    if current_state == "BELOW_ALARM1":
-        # If we rise above A1 but still below A2, we begin logging
-        if current_val >= A1 and current_val < A2:
-            current_state = "BETWEEN_ALARMS"
-            start_logging()
+    # Als we nog niet loggen en de waarde >= start_threshold, beginnen we
+    if (not logging_active) and (current_val >= start_threshold):
+        start_logging()
 
-    elif current_state == "BETWEEN_ALARMS":
-        # If we exceed A2, stop logging and go to ABOVE_ALARM2
-        if current_val >= A2:
-            current_state = "ABOVE_ALARM2"
-            stop_logging()
-        # If we drop below A1, also stop logging
-        elif current_val < A1:
-            current_state = "BELOW_ALARM1"
-            stop_logging()
+    # Als we wél loggen en de waarde <= stop_threshold, stoppen we
+    elif logging_active and (current_val <= stop_threshold):
+        stop_logging()
 
-    elif current_state == "ABOVE_ALARM2":
-        # If we drop back below A2 but stay above A1,
-        # we start a new log file again
-        if current_val < A2 and current_val >= A1:
-            current_state = "BETWEEN_ALARMS"
-            start_logging()
-        # If we drop below A1, no logging
-        elif current_val < A1:
-            current_state = "BELOW_ALARM1"
-            stop_logging()
-
-    # If currently logging, write the data
+    # Als we nu nog logging_active == True, schrijven we data weg
     if logging_active and logfile_handle:
         timestamp = strftime("%Y-%m-%d %H:%M:%S")
         logfile_handle.write(f"{timestamp},{current_val:.3f}\n")
-        # logfile_handle.flush()  # uncomment if you want immediate disk writes
+
+# ------------------- OPSLAAN / LADEN VAN ALARM INSTELLINGEN -------------------
+def load_settings():
+    global BMS_alarm1, BMS_alarm2, SCADA_alarm1, SCADA_alarm2, calibration_offset
+
+    if not os.path.isfile(SETTINGS_FILE):
+        print(f"[SETTINGS] Geen {SETTINGS_FILE} gevonden, gebruik default waardes.")
+        return  # Er is nog geen settings-bestand
+
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            data = json.load(f)
+        # Zet nu de ingelezen waarden
+        BMS_alarm1 = data.get("BMS_alarm1", None)
+        BMS_alarm2 = data.get("BMS_alarm2", None)
+        SCADA_alarm1 = data.get("SCADA_alarm1", None)
+        SCADA_alarm2 = data.get("SCADA_alarm2", None)
+        # Als je ook je calibratie-offset wil opslaan/teruglezen:
+        calibration_offset = data.get("calibration_offset", 0.0)
+
+        print("[SETTINGS] Settings geladen uit:", SETTINGS_FILE)
+        print("BMS_alarm1=", BMS_alarm1)
+        print("BMS_alarm2=", BMS_alarm2)
+        print("SCADA_alarm1=", SCADA_alarm1)
+        print("SCADA_alarm2=", SCADA_alarm2)
+        print("calibration_offset=", calibration_offset)
+
+    except Exception as e:
+        print(f"[SETTINGS] Fout bij inlezen van {SETTINGS_FILE}:", e)
+
+def save_settings():
+    global BMS_alarm1, BMS_alarm2, SCADA_alarm1, SCADA_alarm2, calibration_offset
+    data = {
+        "BMS_alarm1": BMS_alarm1,
+        "BMS_alarm2": BMS_alarm2,
+        "SCADA_alarm1": SCADA_alarm1,
+        "SCADA_alarm2": SCADA_alarm2,
+        # Sla ook de huidige calibratie-offset op als je dat wilt
+        "calibration_offset": calibration_offset,
+    }
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+        print("[SETTINGS] Settings opgeslagen in:", SETTINGS_FILE)
+    except Exception as e:
+        print(f"[SETTINGS] Fout bij opslaan in {SETTINGS_FILE}:", e)
 
 # ------------------- ALARM / RELAY CHECKS -------------------
 def alarm_check1():
-    """Check BMS_alarm1 condition to toggle Relay1, etc."""
+    """Check BMS_alarm1 voor Relay1."""
     global BMS_alarm1, alarm_current
     if BMS_alarm1 is not None:
         if alarm_current > BMS_alarm1:
@@ -200,7 +230,7 @@ def alarm_check1():
     app.after(300, alarm_check1)
 
 def alarm_check2():
-    """Check BMS_alarm2 condition to toggle Relay2, etc."""
+    """Check BMS_alarm2 voor Relay2."""
     global BMS_alarm2, alarm_current
     if BMS_alarm2 is not None:
         if alarm_current > BMS_alarm2:
@@ -210,7 +240,7 @@ def alarm_check2():
     app.after(300, alarm_check2)
 
 def alarm_check3():
-    """Check SCADA_alarm1 condition to toggle Relay3, etc."""
+    """Check SCADA_alarm1 voor Relay3."""
     global SCADA_alarm1, alarm_current
     if SCADA_alarm1 is not None:
         if alarm_current > SCADA_alarm1:
@@ -220,7 +250,7 @@ def alarm_check3():
     app.after(300, alarm_check3)
 
 def alarm_check4():
-    """Check SCADA_alarm2 condition to toggle Relay4, etc."""
+    """Check SCADA_alarm2 voor Relay4."""
     global SCADA_alarm2, alarm_current
     if SCADA_alarm2 is not None:
         if alarm_current > SCADA_alarm2:
@@ -229,7 +259,7 @@ def alarm_check4():
             GPIO.output(Relay4, GPIO.LOW)
     app.after(300, alarm_check4)
 
-# ------------------- SET ALARM CALLBACKS -------------------
+# ------------------- SET ALARM CALLBACKS (opslaan daarna) -------------------
 def BMS_set1():
     global BMS_alarm1
     if BMS_first_input.get() < 0:
@@ -237,6 +267,7 @@ def BMS_set1():
     else:
         BMS_alarm1 = BMS_first_input.get()
         print("BMS Alarm 1 set to:", BMS_alarm1)
+        save_settings()  # <-- opslaan in JSON
 
 def BMS_set2():
     global BMS_alarm2
@@ -245,6 +276,7 @@ def BMS_set2():
     else:
         BMS_alarm2 = BMS_second_input.get()
         print("BMS Alarm 2 set to:", BMS_alarm2)
+        save_settings()
 
 def SCADA_set1():
     global SCADA_alarm1
@@ -253,6 +285,7 @@ def SCADA_set1():
     else:
         SCADA_alarm1 = SCADA_first_input.get()
         print("SCADA Alarm 1 set to:", SCADA_alarm1)
+        save_settings()
 
 def SCADA_set2():
     global SCADA_alarm2
@@ -261,6 +294,7 @@ def SCADA_set2():
     else:
         SCADA_alarm2 = SCADA_second_input.get()
         print("SCADA Alarm 2 set to:", SCADA_alarm2)
+        save_settings()
 
 # ------------------- TESTS & RELAYS -------------------
 def functional_tests():
@@ -290,9 +324,9 @@ def relay_test():
 def analog_test():
     print("Creating a 1Hz sinus from 4-20mA (Not yet implemented)") 
 
-# ------------------- ADC FUNCTIONS -------------------
+# ------------------- ADC FUNCTIES -------------------
 def AC_current_ADC0():
-    """Example function for AC measurement (not fully used here)."""
+    """Voorbeeldfunctie voor AC-meting (niet volledig gebruikt)."""
     global current
     adc = spi.xfer2([1, (8 + 0) << 4, 0])
     raw_value = ((adc[1] & 3) << 8) + adc[2]
@@ -310,8 +344,8 @@ def AC_current_ADC0():
 
 def DC_current_ADC1(samples=5):
     """
-    Measure from channel 1 of the MCP3008, average multiple samples,
-    apply calibration offset, convert to current.
+    Meet van kanaal 1 van de MCP3008, gemiddelde over meerdere samples,
+    pas calibration_offset toe en converteer naar A.
     """
     global current, calibration_offset
     total = 0
@@ -319,21 +353,22 @@ def DC_current_ADC1(samples=5):
         adc = spi.xfer2([1, (8 + 1) << 4, 0])
         raw_value = ((adc[1] & 3) << 8) + adc[2]
         total += raw_value
-    raw_value = total / samples
-    print("Gemiddelde ADC kanaal 1 bit waarde:", raw_value, "en", current)
+    raw_avg = total / samples
+    print("Gemiddelde ADC kanaal 1 bit waarde:", raw_avg, "en", current)
 
     max_adc = 1023
     max_current = 50
-    raw_value = raw_value - calibration_offset
+    # Trek de offset eraf
+    raw_avg -= calibration_offset
 
-    if raw_value <= 0:
-        raw_value = 0
+    if raw_avg < 0:
+        raw_avg = 0
 
-    current = (raw_value / max_adc) * max_current
+    current = (raw_avg / max_adc) * max_current
     return current
 
 def continuous_measurement_loop():
-    """Thread that continuously updates current_samples for a stable average."""
+    """Thread die continu current_samples bijwerkt voor een stabiel gemiddelde."""
     while True:
         sample = DC_current_ADC1(samples=1)
         with current_lock:
@@ -343,10 +378,10 @@ def continuous_measurement_loop():
 # ------------------- GUI UPDATES -------------------
 def update_current_display():
     """
-    Periodically called to:
-      1. Compute the average current from current_samples.
-      2. Update the label on the GUI.
-      3. Run check_and_log() to handle logging logic.
+    Periodiek aangeroepen:
+      1. Gemiddelde stroom uit current_samples.
+      2. Label updaten in de GUI.
+      3. check_and_log() aanroepen voor logging-logic.
     """
     global current_label, current_samples, alarm_current
 
@@ -358,17 +393,17 @@ def update_current_display():
             current_mean = 0.0
             alarm_current = 0.0
 
-    # Update the label
+    # Update label
     current_label.configure(text=f"Current: {current_mean:.2f} A")
 
-    # IMPORTANT: call our new logging state machine
+    # BELANGRIJK: roep onze nieuwe logging-functie aan
     check_and_log(alarm_current)
 
-    # Schedule the next update
+    # Volgende update inplannen
     app.after(200, update_current_display)
 
 def alarm_label_update():
-    """Periodically update the alarm labels."""
+    """Periodiek de alarm-labels updaten."""
     global BMS_alarm1, BMS_alarm2, SCADA_alarm1, SCADA_alarm2
 
     if BMS_alarm1 is not None:
@@ -394,7 +429,7 @@ def alarm_label_update():
     app.after(500, alarm_label_update)
 
 def clear_app():
-    """Clear all widgets from the window."""
+    """Verwijder alle widgets van het window."""
     print("Clearing window...")
     for i in app.winfo_children():
         i.destroy()
@@ -421,10 +456,8 @@ def open_report():
 def plot_log_report(file):
     print("Plotting data...")
     try:
-        data = pd.read_csv(file, sep=",", header=0)  # because we wrote a header now: 'Timestamp,Current'
-        # If you didn't write a header, then use header=None, names=["Timestamp", "Value"]
-
-        # Convert time
+        data = pd.read_csv(file, sep=",", header=0)  # We schreven een header 'Timestamp,Current'
+        # Converteer 'Timestamp' naar datetime
         data["Datetime"] = pd.to_datetime(data["Timestamp"], format="%Y-%m-%d %H:%M:%S", errors='coerce')
         if data["Datetime"].isnull().any():
             print("Error: Invalid datetime format in CSV. Please check for inconsistencies.")
@@ -465,6 +498,9 @@ def calibrate_sensor():
     print(f"Calibration complete. Offset: {calibration_offset:.2f}")
     messagebox.showinfo("Calibration", f"Calibration completed!\nOffset: {calibration_offset:.2f}")
 
+    # Als je direct wilt opslaan:
+    save_settings()
+
 # ------------------- NUMPAD -------------------
 def append_to_input(value):
     if focused_entry:
@@ -479,7 +515,7 @@ def backspace_input():
         focused_entry.insert(0, current_text[:-1])
 
 def on_focus(entry):
-    """Remember which entry is currently selected for the numpad."""
+    """Onthoud welk invoerveld geselecteerd is voor de numpad."""
     global focused_entry
     focused_entry = entry
 
@@ -504,7 +540,7 @@ def main_screen_startup():
     SCADA2_label = customtkinter.CTkLabel(app, text="SCADA second alarm: 0.00 A", font=("Arial", 12))
     SCADA2_label.grid(row=9, column=0, columnspan=1, pady=5)
 
-    # Entries for BMS & SCADA
+    # Invoervelden
     input3 = customtkinter.CTkEntry(app, width=100, height=30, textvariable=SCADA_first_input)
     input3.grid(row=1, column=1, padx=20, pady=0)
     input3.bind("<FocusIn>", lambda e: on_focus(input3))
@@ -560,22 +596,28 @@ def main_screen_startup():
 
 # ------------------- START MEASUREMENT THREAD -------------------
 def on_close():
-    """Clean up on app close."""
-    stop_logging()  # ensure file is closed if we're logging
+    """Netjes opruimen bij afsluiten van de app."""
+    stop_logging()  # Sluit log-bestand als we nog aan het loggen zijn
     app.destroy()
-    
+
 measurement_thread = threading.Thread(target=continuous_measurement_loop, daemon=True)
 measurement_thread.start()
 
-log_file_index = find_next_log_index()  # Start numbering from the next available file
+# Start numbering from the next available file
+log_file_index = find_next_log_index()
+
+# LAAD DE VOORHEEN OPGESLAGEN INSTELLINGEN
+load_settings()
+
+# Toon nu de main-screen
 main_screen_startup()
 
-# Start checking alarms for relay toggles
+# Start periodic alarm checks
 alarm_check1()
 alarm_check2()
 alarm_check3()
 alarm_check4()
 
-# Overwrite app's close handler to run on_close()
+# Overwrite app's close handler
 app.protocol("WM_DELETE_WINDOW", on_close)
 app.mainloop()
