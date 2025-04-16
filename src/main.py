@@ -17,7 +17,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import math  # voor de sinus in analog_test
 
 # ------------------- SETUP & GLOBALS -------------------
-# We gebruiken BCM-mode zodat we 1-op-1 met GPIO-nummers kunnen werken!
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
@@ -25,10 +24,10 @@ customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("dark-blue")
 
 # Relay pins (BCM)
-Relay1 = 17  # voorbeeld: fysiek pin 11
-Relay2 = 22  # fysiek pin 15
-Relay3 = 27  # fysiek pin 13
-Relay4 = 25  # fysiek pin 22
+Relay1 = 17
+Relay2 = 22
+Relay3 = 27
+Relay4 = 25
 
 GPIO.setup(Relay1, GPIO.OUT, initial=GPIO.LOW)
 GPIO.setup(Relay2, GPIO.OUT, initial=GPIO.LOW)
@@ -54,19 +53,17 @@ current_samples = collections.deque(maxlen=256)
 current_lock = threading.Lock()
 
 # ------------------- SPI - MCP3008 (ADC) -------------------
-# We maken één spidev-object voor de MCP3008 (hardware CS0 = GPIO8).
 adc_spi = spidev.SpiDev()
 adc_spi.open(0, 0)       # bus=0, device=0 (CE0)
 adc_spi.max_speed_hz = 1350000
-adc_spi.mode = 0  # MCP3008 werkt meestal in SPI mode 0
+adc_spi.mode = 0  # MCP3008 -> mode 0
 
 # ------------------- SPI - DAC8551 via software CS -------------------
-# We delen MOSI/SCLK met de ADC, maar toggelen GPIO7 als CS voor de DAC.
-DAC_CS = 7  # fysiek pin 26 in BCM numbering
+DAC_CS = 7  # BCM pin 7
 GPIO.setup(DAC_CS, GPIO.OUT, initial=GPIO.HIGH)
 
-# We hergebruiken 'adc_spi' voor DAC‐writes. Let op mode/speed voor de DAC:
-adc_spi.mode = 1  # DAC8551 vraagt vaak mode 1 of 2
+# We hergebruiken hetzelfde spi-object, maar met andere mode
+adc_spi.mode = 1  # DAC8551 -> vaak mode 1 of 2
 adc_spi.max_speed_hz = 1_000_000
 
 # Voor GUI
@@ -294,10 +291,6 @@ def SCADA_set2():
 
 # ------------------- DAC (DAC8551) FUNCTIES -------------------
 def write_dac8551(dac_value):
-    """
-    Schrijf 16 bits naar de DAC8551 (0..65535).
-    Totale frame is 24 bits: [ control byte=0x00, high_byte, low_byte ].
-    """
     if dac_value < 0:
         dac_value = 0
     elif dac_value > 0xFFFF:
@@ -321,18 +314,12 @@ def set_dac_for_current(amps):
         amps = 0
     if amps > 50:
         amps = 50
-    # spanning = 1 + (amps / 50)*4
     voltage = 1.0 + (amps / 50.0) * 4.0
-    # Schaal naar 16 bits DAC => 0..65535, bij 5 V = fullscale
     dac_value = int((voltage / 5.0) * 65535)
     write_dac8551(dac_value)
 
 def analog_test():
-    """
-    Genereert een 0-5V sinusgolf met 1Hz (5 cycli) via de DAC8551.
-    (Losstaande test, blijft ook in de code voor debug.)
-    """
-    print("Generating a 1Hz 0–5V sine wave on DAC8551...")
+    print("Generating a 0–5V, 1Hz sine wave on DAC8551...")
 
     sample_rate = 100
     freq = 1.0
@@ -344,7 +331,6 @@ def analog_test():
         t = (n % sample_rate) / float(sample_rate)
         voltage = 2.5 * (1.0 + math.sin(2 * math.pi * t))
         dac_value = int((voltage / 5.0) * 65535)
-
         write_dac8551(dac_value)
         time.sleep(period / sample_rate)
 
@@ -377,21 +363,16 @@ def relay_test():
 
 # ------------------- ADC FUNCTIES (MCP3008) -------------------
 def DC_current_ADC1(samples=5):
-    """
-    Meet van kanaal 1 van de MCP3008, gemiddelde over meerdere samples,
-    pas calibration_offset toe en converteer naar A.
-    """
     global current, calibration_offset
     total = 0
     for _ in range(samples):
-        adc = adc_spi.xfer2([1, (8 + 1) << 4, 0])  # channel=1
+        adc = adc_spi.xfer2([1, (8 + 1) << 4, 0])
         raw_value = ((adc[1] & 3) << 8) + adc[2]
         total += raw_value
     raw_avg = total / samples
 
     max_adc = 1023
     max_current = 50
-    # Trek de offset eraf
     raw_avg -= calibration_offset
     if raw_avg < 0:
         raw_avg = 0
@@ -404,7 +385,7 @@ def continuous_measurement_loop():
         sample = DC_current_ADC1(samples=1)
         with current_lock:
             current_samples.append(sample)
-        time.sleep(0.01)  # ~100 samples/sec
+        time.sleep(0.01)
 
 # ------------------- GUI UPDATES -------------------
 def update_current_display():
@@ -419,10 +400,7 @@ def update_current_display():
 
     current_label.configure(text=f"Current: {current_mean:.2f} A")
 
-    # 1) Logging-check
     check_and_log(alarm_current)
-
-    # 2) Zet de DAC-uitgang in range 1-5 V voor 0-50 A
     set_dac_for_current(current_mean)
 
     app.after(200, update_current_display)
@@ -457,13 +435,20 @@ def clear_app():
     for i in app.winfo_children():
         i.destroy()
 
-# ------------------- LOG PLOTTING -------------------
+# ------------------- LOGBESTANDEN BEHEREN -------------------
 def log_tab():
     global current_screen
     clear_app()
     current_screen = 1
-    customtkinter.CTkButton(app, width=150, height=50, text="Back to home", command=main_screen_startup).grid(row=0, column=0, padx=20, pady=0)
-    customtkinter.CTkButton(app, width=150, height=50, text="Log reports", command=open_report).grid(row=0, column=1, padx=20, pady=0)
+    # Knop voor terug naar home
+    customtkinter.CTkButton(app, width=150, height=50, text="Back to home",
+                            command=main_screen_startup).grid(row=0, column=0, padx=20, pady=0)
+    # Knop voor log reports
+    customtkinter.CTkButton(app, width=150, height=50, text="Log reports",
+                            command=open_report).grid(row=0, column=1, padx=20, pady=0)
+    # Nieuwe knop om alle logbestanden te verwijderen
+    customtkinter.CTkButton(app, width=150, height=50, text="Delete all logs",
+                            command=delete_all_logs).grid(row=0, column=2, padx=20, pady=0)
 
 def open_report():
     print("searching for log data....")
@@ -502,6 +487,22 @@ def plot_log_report(file):
     except Exception as e:
         print(f"Error reading or plotting CSV file: {e}")
 
+def delete_all_logs():
+    """Verwijder alle log_file_XXXX.csv uit LOG_FOLDER en toon een pop-up."""
+    if not os.path.isdir(LOG_FOLDER):
+        messagebox.showinfo("Delete logs", "Log folder bestaat niet (of is al weg).")
+        return
+
+    removed_count = 0
+    pattern = re.compile(r"^log_file_(\d{4})\.csv$")
+    for filename in os.listdir(LOG_FOLDER):
+        if pattern.match(filename):
+            fullpath = os.path.join(LOG_FOLDER, filename)
+            os.remove(fullpath)
+            removed_count += 1
+
+    messagebox.showinfo("Delete logs", f"Removed {removed_count} log file(s).")
+
 # ------------------- CALIBRATION -------------------
 def calibrate_sensor():
     global calibration_offset
@@ -511,7 +512,7 @@ def calibrate_sensor():
     samples = 512
     total = 0
     for _ in range(samples):
-        adc = adc_spi.xfer2([1, (8 + 1) << 4, 0])  # channel=1
+        adc = adc_spi.xfer2([1, (8 + 1) << 4, 0])
         raw_value = ((adc[1] & 3) << 8) + adc[2]
         total += raw_value
         time.sleep(0.005)
