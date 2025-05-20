@@ -86,10 +86,10 @@ De bugs zijn:
 | Bug                           | Impact                       | Status        |
 |-------------------------------|------------------------------|---------------|
 | Updatefunctie Ampere verdwijnt       | Alleen UI-gerelateerd        | Closed          |
-| Log bestanden missen datum in de naam            | Minder gebruiksvriendelijk   | Open          |
+| Log bestanden missen datum in de naam            | Minder gebruiksvriendelijk   | Closed          |
 | Geen 0-10V sensor support     | Functionaliteit beperkt      | Closed         |
 | Pyplot soms vertekend         | Visuele weergave             | Closed          |
-| Setpoints blijven niet staan na een restart     | Verliest instellingen        | Open          |
+| Setpoints blijven niet staan na een restart     | Verliest instellingen        | Closed          |
 | De taakbalk is nog steeds zichtbaar    | Niet professioneel        | Open          |
 
 
